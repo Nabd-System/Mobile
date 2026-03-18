@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:nabd/core/services/local/app_local_storage.dart';
+import 'package:nabd/core/services/remote/dio_provider.dart';
 import 'package:nabd/features/intro/splash/splash_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); 
+
+  
+  await AppLocalStorage.init();
+  DioProvider.init();
+
   runApp(const MainApp());
 }
 

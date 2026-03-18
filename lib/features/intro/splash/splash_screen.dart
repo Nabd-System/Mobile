@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:nabd/core/constants/app_assets.dart';
+import 'package:nabd/core/functions/navigation.dart';
+import 'package:nabd/core/services/local/app_local_storage.dart';
+import 'package:nabd/features/auth/presentation/page/login_screen.dart';
+import 'package:nabd/features/home/presentation/page/home.dart';
+import 'package:nabd/features/intro/onboarding/page/onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -8,18 +13,25 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-//  void initState() {
-//     super.initState();
-//     String? token = AppLocalStorage.getData(AppLocalStorage.token);
-//     Future.delayed(const Duration(seconds: 3), () {
-//       if (token != null) {
-//          pushWithReplacement(context, const NavBarWidget());
-//        } else {
-//          pushWithReplacement(context, const WelcomeScreen());
-//        }
-//     });
-//   }
 class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      String? token = AppLocalStorage.getData(AppLocalStorage.token);
+      bool? seen = AppLocalStorage.getData(AppLocalStorage.onboardingSeen);
+
+      if (token != null) {
+        pushWithReplacement(context, const Home());
+      } else if (seen == true) {
+        pushWithReplacement(context, const LoginScreen());
+      } else {
+        pushWithReplacement(context, const OnboardingScreen());
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

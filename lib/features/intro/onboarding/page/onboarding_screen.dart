@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nabd/core/functions/navigation.dart';
+import 'package:nabd/core/services/local/app_local_storage.dart';
 import 'package:nabd/core/utils/colors.dart';
 import 'package:nabd/core/utils/text_styles.dart';
 import 'package:nabd/core/widgets/custom_button.dart';
@@ -73,7 +74,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               if (pageIndex != onboardingList.length - 1) ...[
                 CustomButton(
-                  onPressed: () => pushTo(context, const LoginScreen()),
+                  onPressed: () async {
+                    await AppLocalStorage.cacheData(
+                      AppLocalStorage.onboardingSeen,
+                      true,
+                    );
+                    if (!mounted) return;
+                    pushTo(context, const LoginScreen());
+                  },
                   text: 'Skip',
                 ),
                 Spacer(),
@@ -86,7 +94,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ] else ...[
                 CustomButton(
-                  onPressed: () => pushTo(context, const LoginScreen()),
+                  onPressed: () async {
+                    await AppLocalStorage.cacheData(
+                      AppLocalStorage.onboardingSeen,
+                      true,
+                    );
+                    if (!mounted) return;
+                    pushTo(context, const LoginScreen());
+                  },
                   text: 'Get Started !',
                 ),
               ],
