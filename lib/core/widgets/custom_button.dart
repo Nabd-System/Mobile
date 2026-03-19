@@ -19,24 +19,26 @@ class CustomButton extends StatelessWidget {
   final Color? bgColor;
   final Color? textColor;
   final String text;
-  final Function() onPressed;
+  final Function()? onPressed;
   final double radius;
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-        width: width,
-        height: height,
-        child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: bgColor ?? AppColors.primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(radius),
-                )),
-            onPressed: onPressed,
-            child: Text(
-              text,
-              style:
-                  getFont16TextStyle(color: textColor ?? AppColors.whiteColor),
-            )));
+      width: width,
+      height: height,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bgColor ?? AppColors.primaryColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radius),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Text(
+          text,
+          style: getFont16TextStyle(color: textColor ?? AppColors.whiteColor),
+        ),
+      ),
+    );
   }
 }
