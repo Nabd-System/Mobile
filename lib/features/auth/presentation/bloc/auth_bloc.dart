@@ -1,10 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:nabd/core/services/local/app_local_storage.dart';
-import 'package:nabd/features/auth/data/repo/auth_repo.dart';
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_state.dart';
 
 part 'auth_event.dart';
-
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepo authRepo;
@@ -26,10 +25,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
 
       // ✅ حفظ الـ token في SharedPreferences
-      await AppLocalStorage.cacheData(
-        AppLocalStorage.token,
-        user.accessToken,
-      );
+      await AppLocalStorage.cacheData(AppLocalStorage.token, user.accessToken);
 
       emit(LoginSuccess(user: user));
     } catch (e) {

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gap/flutter_gap.dart';
-import 'package:nabd/core/functions/navigation.dart';
-import 'package:nabd/core/services/local/app_local_storage.dart';
-import 'package:nabd/core/utils/colors.dart';
-import 'package:nabd/core/utils/text_styles.dart';
+import 'package:nabd/core/utils/navigation.dart';
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
 import 'package:nabd/core/widgets/custom_button.dart';
-import 'package:nabd/features/auth/presentation/page/login_screen.dart';
-import 'package:nabd/features/intro/onboarding/model/onboarding_model.dart';
+import 'package:nabd/features/auth/presentation/pages/login_screen.dart';
+import 'package:nabd/features/onboarding/data/models/onboarding_model.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -72,17 +72,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         children: [
                           Text(
                             onboardingList[index].title,
-                            style: getFont20TextStyle(
-                              fontSize: 24,
+                            style: AppTextStyles.heading2(
                               color: AppColors.darkColor,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          Gap(10),
+                          const Gap(10),
                           Text(
                             onboardingList[index].description,
-                            style: getFont20TextStyle(
-                              fontSize: 14,
+                            style: AppTextStyles.bodySmall(
                               color: AppColors.darkColor,
                               fontWeight: FontWeight.w500,
                             ),
@@ -95,7 +93,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               },
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 32),
             child: Row(
@@ -112,18 +109,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         AppLocalStorage.onboardingSeen,
                         true,
                       );
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       pushTo(context, const LoginScreen());
                     },
                     text: 'Skip',
                   ),
-
                   CustomButton(
                     width: 163.5,
                     height: 40,
                     onPressed: () => pageController.nextPage(
                       duration: const Duration(milliseconds: 400),
-                      curve: Curves.bounceIn,
+                      curve: Curves.easeInOut,
                     ),
                     text: 'Next',
                   ),
@@ -136,7 +132,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         AppLocalStorage.onboardingSeen,
                         true,
                       );
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       pushTo(context, const LoginScreen());
                     },
                     text: 'Get Started !',

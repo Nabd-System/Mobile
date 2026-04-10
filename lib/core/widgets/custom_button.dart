@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:nabd/core/utils/colors.dart';
-import 'package:nabd/core/utils/text_styles.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
 
 class CustomButton extends StatelessWidget {
   const CustomButton({
     super.key,
     this.width = double.infinity,
-    this.height = 56,
+    this.height = 50,
     this.radius = 10,
     required this.text,
     this.bgColor,
     this.textColor,
     required this.onPressed,
+    this.isLoading = false,
   });
 
   final double width;
@@ -19,8 +20,10 @@ class CustomButton extends StatelessWidget {
   final Color? bgColor;
   final Color? textColor;
   final String text;
-  final Function()? onPressed;
+  final VoidCallback? onPressed;
   final double radius;
+  final bool isLoading;
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -29,15 +32,27 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor ?? AppColors.primaryColor,
+          disabledBackgroundColor: AppColors.greyColor.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radius),
           ),
         ),
-        onPressed: onPressed,
-        child: Text(
-          text,
-          style: getFont16TextStyle(color: textColor ?? AppColors.whiteColor),
-        ),
+        onPressed: isLoading ? null : onPressed,
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.whiteColor,
+                ),
+              )
+            : Text(
+                text,
+                style: AppTextStyles.button(
+                  color: textColor ?? AppColors.whiteColor,
+                ),
+              ),
       ),
     );
   }

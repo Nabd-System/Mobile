@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:nabd/core/constants/app_assets.dart';
-import 'package:nabd/core/functions/navigation.dart';
-import 'package:nabd/core/services/local/app_local_storage.dart';
-import 'package:nabd/features/auth/presentation/page/login_screen.dart';
-import 'package:nabd/features/home/presentation/page/home.dart';
-import 'package:nabd/features/intro/onboarding/page/onboarding_screen.dart';
+import 'package:nabd/core/utils/navigation.dart';
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/features/auth/presentation/pages/login_screen.dart';
+import 'package:nabd/features/home/presentation/pages/home_screen.dart';
+import 'package:nabd/features/onboarding/presentation/pages/onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -23,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
       bool? seen = AppLocalStorage.getData(AppLocalStorage.onboardingSeen);
 
       if (token != null) {
-        pushWithReplacement(context, const Home());
+        pushWithReplacement(context, const HomeScreen());
       } else if (seen == true) {
         pushWithReplacement(context, const LoginScreen());
       } else {

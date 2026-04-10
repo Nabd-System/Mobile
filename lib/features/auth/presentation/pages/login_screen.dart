@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gap/flutter_gap.dart';
-import 'package:nabd/core/functions/navigation.dart';
-import 'package:nabd/core/utils/colors.dart';
+import 'package:nabd/core/utils/navigation.dart';
+import 'package:nabd/core/theme/app_colors.dart';
 import 'package:nabd/core/widgets/custom_button.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_state.dart';
-import 'package:nabd/features/home/presentation/page/home.dart';
-import 'package:nabd/features/intro/onboarding/page/onboarding_screen.dart';
+import 'package:nabd/features/home/presentation/pages/home_screen.dart';
+import 'package:nabd/features/onboarding/presentation/pages/onboarding_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         if (state is LoginSuccess) {
-          pushAndRemoveUntil(context, const Home());
+          pushAndRemoveUntil(context, const HomeScreen());
         } else if (state is LoginFailure) {
           ScaffoldMessenger.of(
             context,

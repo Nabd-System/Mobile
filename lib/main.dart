@@ -1,12 +1,11 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:nabd/app.dart';
-import 'package:nabd/core/services/local/app_local_storage.dart';
-import 'package:nabd/core/services/remote/dio_provider.dart';
+import 'package:nabd/app/app.dart';
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/core/network/api_client.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppLocalStorage.init();
-  DioProvider.init();
-  runApp(const App()); // ← بدل MainApp
+  ApiClient.init();
+  runApp(const App());
 }
