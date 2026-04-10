@@ -10,11 +10,11 @@ class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
 
   @override
-  State<MainLayoutScreen> createState() => _MainLayoutScreenState();
+  State<MainLayoutScreen> createState() => MainLayoutScreenState();
 }
 
-class _MainLayoutScreenState extends State<MainLayoutScreen> {
-  int _currentIndex = 2; // Home is default
+class MainLayoutScreenState extends State<MainLayoutScreen> {
+  int _currentIndex = 2;
 
   final List<Widget> _screens = const [
     BookAppointmentScreen(),
@@ -24,17 +24,20 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     PatientProfileScreen(),
   ];
 
+  void changeTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: changeTab,
       ),
     );
   }

@@ -12,43 +12,50 @@ class HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Avatar
         const CircleAvatar(
           radius: 24,
           backgroundColor: AppColors.accentColor,
           child: Icon(Icons.person, color: AppColors.primaryColor, size: 28),
         ),
         const SizedBox(width: 12),
-
-        // Name & Type
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Hi $userName!',
-                style: AppTextStyles.heading3(fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  Text(
+                    'Hi $userName!',
+                    style: AppTextStyles.heading3(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      userType,
+                      style: AppTextStyles.caption(
+                        color: AppColors.whiteColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 2),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  userType,
-                  style: AppTextStyles.caption(
-                    color: AppColors.primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              Text(
+                'May you always in a good condition',
+                style: AppTextStyles.caption(color: AppColors.greyColor),
               ),
             ],
           ),
         ),
-
-        // Notification Icon
         IconButton(
           onPressed: () {
             // TODO: notifications
@@ -57,14 +64,6 @@ class HomeHeader extends StatelessWidget {
             Icons.notifications_outlined,
             color: AppColors.darkColor,
           ),
-        ),
-
-        // Search Icon
-        IconButton(
-          onPressed: () {
-            // TODO: search
-          },
-          icon: const Icon(Icons.search, color: AppColors.darkColor),
         ),
       ],
     );

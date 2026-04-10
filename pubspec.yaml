@@ -19,6 +19,7 @@ dependencies:
   onbackground_shared_prefrences: ^0.0.2
   shared_preferences: ^2.5.4
   smooth_page_indicator: ^2.0.1
+  circle_nav_bar: ^2.1.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0

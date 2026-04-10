@@ -1,3 +1,4 @@
+import 'package:circle_nav_bar/circle_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:nabd/core/theme/app_colors.dart';
 
@@ -13,121 +14,35 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.whiteColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: CircleNavBar(
+        activeIndex: currentIndex,
+        onTap: onTap,
+        activeIcons: const [
+          Icon(Icons.calendar_month, color: AppColors.whiteColor),
+          Icon(Icons.event_note, color: AppColors.whiteColor),
+          Icon(Icons.home_rounded, color: AppColors.whiteColor),
+          Icon(Icons.folder, color: AppColors.whiteColor),
+          Icon(Icons.person, color: AppColors.whiteColor),
         ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                index: 0,
-                icon: Icons.calendar_month_outlined,
-                activeIcon: Icons.calendar_month,
-                label: 'Book',
-              ),
-              _buildNavItem(
-                index: 1,
-                icon: Icons.event_note_outlined,
-                activeIcon: Icons.event_note,
-                label: 'Appointments',
-              ),
-              _buildHomeButton(),
-              _buildNavItem(
-                index: 3,
-                icon: Icons.folder_outlined,
-                activeIcon: Icons.folder,
-                label: 'Records',
-              ),
-              _buildNavItem(
-                index: 4,
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
-                label: 'Profile',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required IconData activeIcon,
-    required String label,
-  }) {
-    final isSelected = currentIndex == index;
-    return GestureDetector(
-      onTap: () => onTap(index),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected ? AppColors.primaryColor : AppColors.greyColor,
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: isSelected
-                    ? AppColors.primaryColor
-                    : AppColors.greyColor,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHomeButton() {
-    final isSelected = currentIndex == 2;
-    return GestureDetector(
-      onTap: () => onTap(2),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryColor
-              : AppColors.primaryColor.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primaryColor.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : [],
-        ),
-        child: Icon(
-          Icons.home,
-          color: isSelected ? AppColors.whiteColor : AppColors.primaryColor,
-          size: 28,
-        ),
+        inactiveIcons: const [
+          Icon(Icons.calendar_month_outlined, color: AppColors.greyColor),
+          Icon(Icons.event_note_outlined, color: AppColors.greyColor),
+          Icon(Icons.home_outlined, color: AppColors.greyColor),
+          Icon(Icons.folder_outlined, color: AppColors.greyColor),
+          Icon(Icons.person_outline, color: AppColors.greyColor),
+        ],
+        height: 70,
+        circleWidth: 50,
+        color: AppColors.whiteColor.withValues(alpha: 0.75),
+        circleColor: AppColors.primaryColor,
+        shadowColor: AppColors.primaryColor.withValues(alpha: 0.2),
+        elevation: 8,
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+        cornerRadius: const BorderRadius.all(Radius.circular(28)),
+        tabCurve: Curves.easeOutBack,
+        circleShadowColor: AppColors.primaryColor.withValues(alpha: 0.3),
       ),
     );
   }

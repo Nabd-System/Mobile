@@ -8,4 +8,8 @@ class AppAssets {
   static const String eye = 'assets/icons/eye.svg';
   static const String notification = 'assets/icons/notification.svg';
   static const String logout = 'assets/icons/logout.svg';
+  static const String bookappointment = 'assets/images/bookappoitment.png';
+  static const String medicalrecords = 'assets/images/medicalrecords.png';
+  static const String labres = 'assets/images/labres.png';
+  static const String aipc = 'assets/images/aipc.png';
 }
