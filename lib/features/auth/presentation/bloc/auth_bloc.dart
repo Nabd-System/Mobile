@@ -1,35 +1,46 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:nabd/core/storage/app_local_storage.dart';
-import 'package:nabd/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:nabd/core/errors/exceptions.dart';
+import 'package:nabd/features/auth/domain/repositories/auth_repository.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_state.dart';
 
 part 'auth_event.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final AuthRepo authRepo;
+  final AuthRepository authRepository;
 
-  AuthBloc({required this.authRepo}) : super(AuthInitial()) {
+  AuthBloc({required this.authRepository}) : super(AuthInitial()) {
     on<LoginRequested>(_onLoginRequested);
+    on<LogoutRequested>(_onLogoutRequested);
   }
 
   Future<void> _onLoginRequested(
     LoginRequested event,
     Emitter<AuthState> emit,
   ) async {
-    emit(AuthLoading()); // ابعت loading أول حاجة
+    emit(AuthLoading());
 
     try {
-      final user = await authRepo.login(
+      final user = await authRepository.login(
         username: event.username,
         password: event.password,
       );
-
-      // ✅ حفظ الـ token في SharedPreferences
-      await AppLocalStorage.cacheData(AppLocalStorage.token, user.accessToken);
-
       emit(LoginSuccess(user: user));
+    } on UnauthorizedException {
+      emit(LoginFailure(message: 'Invalid username or password'));
+    } on NetworkException {
+      emit(LoginFailure(message: 'No internet connection'));
+    } on ServerException catch (e) {
+      emit(LoginFailure(message: e.message));
     } catch (e) {
-      emit(LoginFailure(message: e.toString()));
+      emit(LoginFailure(message: 'Something went wrong. Please try again'));
     }
+  }
+
+  Future<void> _onLogoutRequested(
+    LogoutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    await authRepository.logout();
+    emit(LogoutSuccess());
   }
 }

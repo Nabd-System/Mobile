@@ -8,3 +8,5 @@ class LoginRequested extends AuthEvent {
 
   LoginRequested({required this.username, required this.password});
 }
+
+class LogoutRequested extends AuthEvent {}

@@ -19,17 +19,29 @@ class LoginResponseModel {
     required this.userType,
   });
 
-  // من الـ JSON اللي بييجي من الـ API
   factory LoginResponseModel.fromJson(Map<String, dynamic> json) {
     return LoginResponseModel(
-      isAuthenticated: json['isAuthenticated'],
-      email: json['email'],
-      accessToken: json['accessToken'],
-      refreshToken: json['refreshToken'],
-      userName: json['userName'],
-      fullNameArabic: json['fullNameArabic'],
-      fullNameEnglish: json['fullNameEnglish'],
-      userType: json['userType'],
+      isAuthenticated: json['isAuthenticated'] ?? false,
+      email: json['email'] ?? '',
+      accessToken: json['accessToken'] ?? '',
+      refreshToken: json['refreshToken'] ?? '',
+      userName: json['userName'] ?? '',
+      fullNameArabic: json['fullNameArabic'] ?? '',
+      fullNameEnglish: json['fullNameEnglish'] ?? '',
+      userType: json['userType'] ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'isAuthenticated': isAuthenticated,
+      'email': email,
+      'accessToken': accessToken,
+      'refreshToken': refreshToken,
+      'userName': userName,
+      'fullNameArabic': fullNameArabic,
+      'fullNameEnglish': fullNameEnglish,
+      'userType': userType,
+    };
   }
 }
