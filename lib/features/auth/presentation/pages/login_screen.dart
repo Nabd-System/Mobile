@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gap/flutter_gap.dart';
 import 'package:nabd/core/utils/navigation.dart';
 import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
 import 'package:nabd/core/widgets/custom_button.dart';
+import 'package:nabd/core/widgets/custom_text_field.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_state.dart';
 import 'package:nabd/features/home/presentation/pages/home_screen.dart';
@@ -21,22 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isFormValid = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _usernameController.addListener(_checkForm);
-    _passwordController.addListener(_checkForm);
-  }
-
-  void _checkForm() {
-    setState(() {
-      _isFormValid =
-          _usernameController.text.isNotEmpty &&
-          _passwordController.text.isNotEmpty;
-    });
-  }
 
   @override
   void dispose() {
@@ -49,24 +34,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is LoginSuccess || state is LoginFailure) {
-          if (Navigator.of(context, rootNavigator: true).canPop()) {
-            Navigator.of(context, rootNavigator: true).pop();
-          }
-        }
-
         if (state is LoginSuccess) {
           pushAndRemoveUntil(context, const HomeScreen());
         } else if (state is LoginFailure) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
-        } else if (state is AuthLoading) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) =>
-                const Center(child: CircularProgressIndicator()),
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.redColor,
+            ),
           );
         }
       },
@@ -78,146 +53,101 @@ class _LoginScreenState extends State<LoginScreen> {
                 pushWithReplacement(context, const OnboardingScreen()),
           ),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Welcome',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              Gap(8),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Welcome', style: AppTextStyles.heading2()),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please enter a form to login this app',
+                    style: AppTextStyles.bodyMedium(color: AppColors.greyColor),
+                  ),
+                  const SizedBox(height: 32),
 
-              const Text(
-                "Please enter a form to login this app",
-                style: TextStyle(fontSize: 16),
-              ),
-              Gap(32),
-              Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Email or Username',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                  // Username Field
+                  CustomTextField(
+                    controller: _usernameController,
+                    label: 'Email or Username',
+                    hintText: 'Enter your full name',
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your username';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Password Field
+                  CustomTextField(
+                    controller: _passwordController,
+                    label: 'Password',
+                    hintText: 'Enter your password',
+                    obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: AppColors.greyColor,
                       ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
-                    TextFormField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Colors.grey),
-                        ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
+                  ),
 
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: AppColors.primaryColor),
-                        ),
-
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Colors.red),
-                        ),
-
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Colors.red),
-                        ),
-                        hintText: 'Enter your full name',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your username';
-                        }
-                        return null;
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        // TODO: navigate to forgot password
                       },
-                    ),
-                    Gap(16),
-                    Text(
-                      'Password',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    TextFormField(
-                      controller: _passwordController,
-                      decoration: InputDecoration(
-                        hintText: 'Password',
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Colors.grey),
-                        ),
-
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: AppColors.primaryColor),
-                        ),
-
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Colors.red),
-                        ),
-
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                          borderSide: BorderSide(color: Colors.red),
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
+                      child: Text(
+                        'Forgot Password?',
+                        style: AppTextStyles.bodySmall(
+                          color: AppColors.primaryColor,
                         ),
                       ),
-                      obscureText: _obscurePassword,
-                      obscuringCharacter: '●',
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        return null;
-                      },
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {},
-                        child: Text('Forgot Password?'),
-                      ),
-                    ),
-                    Gap(40),
-                    CustomButton(
-                      width: 343,
-                      height: 40,
-                      onPressed: _isFormValid
-                          ? () {
-                              if (_formKey.currentState!.validate()) {
-                                context.read<AuthBloc>().add(
-                                  LoginRequested(
-                                    username: _usernameController.text,
-                                    password: _passwordController.text,
-                                  ),
-                                );
-                              }
-                            }
-                          : null,
-                      text: ('sign in'),
-                    ),
-                  ],
-                ),
+                  // Login Button
+                  BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, state) {
+                      return CustomButton(
+                        text: 'Sign In',
+                        isLoading: state is AuthLoading,
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            context.read<AuthBloc>().add(
+                              LoginRequested(
+                                username: _usernameController.text.trim(),
+                                password: _passwordController.text,
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
