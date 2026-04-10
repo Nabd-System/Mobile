@@ -3,7 +3,7 @@ import 'package:nabd/core/constants/app_assets.dart';
 import 'package:nabd/core/utils/navigation.dart';
 import 'package:nabd/core/storage/app_local_storage.dart';
 import 'package:nabd/features/auth/presentation/pages/login_screen.dart';
-import 'package:nabd/features/home/presentation/pages/home_screen.dart';
+import 'package:nabd/features/main_layout/presentation/pages/main_layout_screen.dart';
 import 'package:nabd/features/onboarding/presentation/pages/onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -23,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
       bool? seen = AppLocalStorage.getData(AppLocalStorage.onboardingSeen);
 
       if (token != null) {
-        pushWithReplacement(context, const HomeScreen());
+        pushWithReplacement(context, const MainLayoutScreen());
       } else if (seen == true) {
         pushWithReplacement(context, const LoginScreen());
       } else {
@@ -36,14 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Center(
-              child: Image.asset(AppAssets.logoPng, width: 166, height: 179),
-            ),
-          ],
-        ),
+        child: Image.asset(AppAssets.logoPng, width: 166, height: 179),
       ),
     );
   }

@@ -7,7 +7,7 @@ import 'package:nabd/core/widgets/custom_button.dart';
 import 'package:nabd/core/widgets/custom_text_field.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_state.dart';
-import 'package:nabd/features/home/presentation/pages/home_screen.dart';
+import 'package:nabd/features/main_layout/presentation/pages/main_layout_screen.dart';
 import 'package:nabd/features/onboarding/presentation/pages/onboarding_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is LoginSuccess) {
-          pushAndRemoveUntil(context, const HomeScreen());
+          pushAndRemoveUntil(context, const MainLayoutScreen());
         } else if (state is LoginFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
