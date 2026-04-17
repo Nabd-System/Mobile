@@ -31,6 +31,11 @@ class NotesChanged extends BookAppointmentEvent {
   NotesChanged({required this.notes});
 }
 
+class FileNumberChanged extends BookAppointmentEvent {
+  final String fileNumber;
+  FileNumberChanged({required this.fileNumber});
+}
+
 class PeriodChanged extends BookAppointmentEvent {
   final String period;
   PeriodChanged({required this.period});

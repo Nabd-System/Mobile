@@ -19,6 +19,7 @@ class BookAppointmentScreen extends StatefulWidget {
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   final _notesController = TextEditingController();
+
   DateTime _focusedMonth = DateTime.now();
 
   @override

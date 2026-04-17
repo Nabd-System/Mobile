@@ -34,7 +34,6 @@ class TimeSlotsGrid extends StatelessWidget {
               'Available Time',
               style: AppTextStyles.bodyMedium(fontWeight: FontWeight.w600),
             ),
-            // AM/PM Toggle
             Container(
               decoration: BoxDecoration(
                 color: AppColors.accentColor,
@@ -104,7 +103,7 @@ class TimeSlotsGrid extends StatelessWidget {
             itemCount: slots.length,
             itemBuilder: (context, index) {
               final slot = slots[index];
-              final isSelected = selectedSlot?.time == slot.time;
+              final isSelected = selectedSlot?.slotStart == slot.slotStart;
 
               return GestureDetector(
                 onTap: slot.isAvailable ? () => onSlotSelected(slot) : null,
@@ -125,7 +124,7 @@ class TimeSlotsGrid extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      slot.time,
+                      slot.displayTime,
                       style: AppTextStyles.bodySmall(
                         color: isSelected
                             ? AppColors.whiteColor

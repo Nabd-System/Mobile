@@ -1,25 +1,28 @@
 class AppointmentRequestModel {
-  final int clinicId;
   final int doctorId;
-  final String date;
-  final String time;
+  final int clinicId;
+  final String appointmentDate; // "2026-04-20T09:10:00"
+  final int appointmentType;
   final String? notes;
+  final String fileNumber;
 
   const AppointmentRequestModel({
-    required this.clinicId,
     required this.doctorId,
-    required this.date,
-    required this.time,
+    required this.clinicId,
+    required this.appointmentDate,
+    required this.appointmentType,
     this.notes,
+    required this.fileNumber,
   });
 
   Map<String, dynamic> toJson() {
     return {
-      'clinicId': clinicId,
       'doctorId': doctorId,
-      'date': date,
-      'time': time,
+      'clinicId': clinicId,
+      'appointmentDate': appointmentDate,
+      'appointmentType': appointmentType,
       if (notes != null && notes!.isNotEmpty) 'notes': notes,
+      'fileNumber': fileNumber,
     };
   }
 }

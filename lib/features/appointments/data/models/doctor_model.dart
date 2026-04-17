@@ -1,22 +1,22 @@
 class DoctorModel {
   final int id;
   final String name;
-  final String specialization;
-  final int clinicId;
+  final String? specialization;
+  final int? clinicId;
 
   const DoctorModel({
     required this.id,
     required this.name,
-    required this.specialization,
-    required this.clinicId,
+    this.specialization,
+    this.clinicId,
   });
 
   factory DoctorModel.fromJson(Map<String, dynamic> json) {
     return DoctorModel(
       id: json['id'],
       name: json['name'] ?? '',
-      specialization: json['specialization'] ?? '',
-      clinicId: json['clinicId'] ?? 0,
+      specialization: json['specialization'],
+      clinicId: json['clinicId'],
     );
   }
 
@@ -24,8 +24,8 @@ class DoctorModel {
     return {
       'id': id,
       'name': name,
-      'specialization': specialization,
-      'clinicId': clinicId,
+      if (specialization != null) 'specialization': specialization,
+      if (clinicId != null) 'clinicId': clinicId,
     };
   }
 }
