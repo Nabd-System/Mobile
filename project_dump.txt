@@ -1,0 +1,4938 @@
+
+
+========== E:\gradution project\NABD\nabd\lib\app\app.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nabd/core/theme/app_theme.dart';
+import 'package:nabd/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:nabd/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:nabd/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:nabd/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:nabd/features/appointments/data/datasources/appointments_remote_datasource.dart';
+import 'package:nabd/features/appointments/data/repositories/appointments_repository_impl.dart';
+import 'package:nabd/features/appointments/presentation/bloc/book_appointment_bloc.dart';
+import 'package:nabd/features/appointments/presentation/bloc/my_appointments_bloc.dart';
+import 'package:nabd/features/profile/data/datasources/profile_local_datasource.dart';
+import 'package:nabd/features/profile/data/datasources/profile_remote_datasource.dart';
+import 'package:nabd/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:nabd/features/splash/presentation/pages/splash_screen.dart';
+
+class App extends StatelessWidget {
+  const App({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appointmentsRepository = AppointmentsRepositoryImpl(
+      remoteDatasource: AppointmentsRemoteDatasource(),
+    );
+
+    final profileRepository = ProfileRepositoryImpl(
+      remoteDatasource: ProfileRemoteDatasource(),
+      localDatasource: ProfileLocalDatasource(),
+    );
+
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => AuthBloc(
+            authRepository: AuthRepositoryImpl(
+              remoteDatasource: AuthRemoteDatasource(),
+              localDatasource: AuthLocalDatasource(),
+            ),
+          ),
+        ),
+        BlocProvider(
+          create: (_) => BookAppointmentBloc(
+            repository: appointmentsRepository,
+            profileRepository: profileRepository,
+          )..add(LoadClinicsRequested()),
+        ),
+        BlocProvider(
+          create: (_) =>
+              MyAppointmentsBloc(repository: appointmentsRepository)
+                ..add(LoadMyAppointments()),
+        ),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        home: const SplashScreen(),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\constants\app_assets.dart ==========
+
+class AppAssets {
+  static const String logoSvg = 'assets/images/nabdlogo.svg';
+  static const String logoPng = 'assets/images/nabdlogopng.png';
+  static const String backArrow = 'assets/icons/backarrow.svg';
+  static const String search = 'assets/icons/search.svg';
+  static const String home = 'assets/icons/Home.svg';
+  static const String profile = 'assets/icons/Profile.svg';
+  static const String eye = 'assets/icons/eye.svg';
+  static const String notification = 'assets/icons/notification.svg';
+  static const String logout = 'assets/icons/logout.svg';
+  static const String bookappointment = 'assets/images/bookappoitment.png';
+  static const String medicalrecords = 'assets/images/medicalrecords.png';
+  static const String labres = 'assets/images/labres.png';
+  static const String aipc = 'assets/images/aipc.png';
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\constants\app_fonts.dart ==========
+
+class AppFonts {
+  static const String dmSerifDisplay = 'DM Serif Display';
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\constants\storage_keys.dart ==========
+
+class StorageKeys {
+  StorageKeys._();
+
+  static const String token = 'token';
+  static const String refreshToken = 'refresh_token';
+  static const String userType = 'userType';
+  static const String onboardingSeen = 'onboardingSeen';
+  static const String userId = 'userId';
+  static const String userName = 'userName';
+  static const String fileNumber = 'fileNumber';
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\errors\exceptions.dart ==========
+
+class ServerException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  ServerException({required this.message, this.statusCode});
+
+  @override
+  String toString() => 'ServerException: $message (code: $statusCode)';
+}
+
+class CacheException implements Exception {
+  final String message;
+
+  CacheException({required this.message});
+
+  @override
+  String toString() => 'CacheException: $message';
+}
+
+class NetworkException implements Exception {
+  final String message;
+
+  NetworkException({this.message = 'No internet connection'});
+
+  @override
+  String toString() => 'NetworkException: $message';
+}
+
+class UnauthorizedException implements Exception {
+  final String message;
+
+  UnauthorizedException({this.message = 'Unauthorized access'});
+
+  @override
+  String toString() => 'UnauthorizedException: $message';
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\errors\failures.dart ==========
+
+abstract class Failure {
+  final String message;
+
+  Failure({required this.message});
+}
+
+class ServerFailure extends Failure {
+  ServerFailure({required super.message});
+}
+
+class CacheFailure extends Failure {
+  CacheFailure({required super.message});
+}
+
+class NetworkFailure extends Failure {
+  NetworkFailure({super.message = 'Please check your internet connection'});
+}
+
+class UnauthorizedFailure extends Failure {
+  UnauthorizedFailure({super.message = 'Session expired. Please login again'});
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\network\api_client.dart ==========
+
+import 'package:dio/dio.dart';
+import 'package:nabd/core/errors/exceptions.dart';
+import 'package:nabd/core/network/api_interceptors.dart';
+import 'package:nabd/core/network/endpoints.dart';
+
+class ApiClient {
+  static late Dio _dio;
+
+  static void init() {
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: AppEndpoints.baseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 15),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    _dio.interceptors.addAll([AuthInterceptor(), LoggingInterceptor()]);
+  }
+
+  // ==================== GET ====================
+  static Future<Response> get({
+    required String endpoint,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+  }) async {
+    try {
+      return await _dio.get(
+        endpoint,
+        queryParameters: queryParameters,
+        options: Options(headers: headers),
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // ==================== POST ====================
+  static Future<Response> post({
+    required String endpoint,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+  }) async {
+    try {
+      return await _dio.post(
+        endpoint,
+        data: data,
+        queryParameters: queryParameters,
+        options: Options(headers: headers),
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // ==================== PUT ====================
+  static Future<Response> put({
+    required String endpoint,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+  }) async {
+    try {
+      return await _dio.put(
+        endpoint,
+        data: data,
+        queryParameters: queryParameters,
+        options: Options(headers: headers),
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // ==================== DELETE ====================
+  static Future<Response> delete({
+    required String endpoint,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+  }) async {
+    try {
+      return await _dio.delete(
+        endpoint,
+        data: data,
+        queryParameters: queryParameters,
+        options: Options(headers: headers),
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // ==================== Error Handler ====================
+  static Exception _handleDioError(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return NetworkException(
+          message: 'Connection timeout. Please try again',
+        );
+
+      case DioExceptionType.connectionError:
+        return NetworkException(message: 'No internet connection');
+
+      case DioExceptionType.badResponse:
+        return _handleStatusCode(e.response);
+
+      case DioExceptionType.cancel:
+        return ServerException(message: 'Request was cancelled');
+
+      default:
+        return ServerException(
+          message: 'Something went wrong. Please try again',
+        );
+    }
+  }
+
+  static Exception _handleStatusCode(Response? response) {
+    final statusCode = response?.statusCode;
+    final data = response?.data;
+
+    String message = 'Something went wrong';
+    if (data is Map<String, dynamic>) {
+      message = data['message'] ?? data['title'] ?? message;
+    }
+
+    switch (statusCode) {
+      case 400:
+        return ServerException(message: message, statusCode: 400);
+      case 401:
+        return UnauthorizedException(message: message);
+      case 403:
+        return UnauthorizedException(message: 'Access denied');
+      case 404:
+        return ServerException(message: 'Not found', statusCode: 404);
+      case 409:
+        return ServerException(message: message, statusCode: 409);
+      case 422:
+        return ServerException(message: message, statusCode: 422);
+      case 500:
+        return ServerException(
+          message: 'Server error. Please try later',
+          statusCode: 500,
+        );
+      default:
+        return ServerException(message: message, statusCode: statusCode);
+    }
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\network\api_interceptors.dart ==========
+
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/core/constants/storage_keys.dart';
+
+class AuthInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final token = AppLocalStorage.getData(StorageKeys.token);
+    if (token != null && token.toString().isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    super.onRequest(options, handler);
+  }
+}
+
+class LoggingInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    debugPrint('┌──────────────────────────────────────');
+    debugPrint('│ 🚀 REQUEST: ${options.method} ${options.uri}');
+    debugPrint('│ Headers: ${options.headers}');
+    if (options.data != null) {
+      debugPrint('│ Body: ${options.data}');
+    }
+    debugPrint('└──────────────────────────────────────');
+    super.onRequest(options, handler);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    debugPrint('┌──────────────────────────────────────');
+    debugPrint(
+      '│ ✅ RESPONSE: ${response.statusCode} ${response.requestOptions.uri}',
+    );
+    debugPrint('│ Data: ${response.data}');
+    debugPrint('└──────────────────────────────────────');
+    super.onResponse(response, handler);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    debugPrint('┌──────────────────────────────────────');
+    debugPrint(
+      '│ ❌ ERROR: ${err.response?.statusCode} ${err.requestOptions.uri}',
+    );
+    debugPrint('│ Message: ${err.message}');
+    debugPrint('│ Response: ${err.response?.data}');
+    debugPrint('└──────────────────────────────────────');
+    super.onError(err, handler);
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\network\endpoints.dart ==========
+
+class AppEndpoints {
+  AppEndpoints._();
+
+  static const String baseUrl = 'https://nabd.runasp.net/api/';
+
+  // ==================== Auth ====================
+  static const String login = 'Account/login';
+
+  // ==================== Patient ====================
+  static const String clinics = 'Patient/Clinics';
+  static const String doctors = 'Patient/Doctors';
+  static const String patientProfile = 'Patient/My/Profile';
+  static const String myAppointments = 'Patient/My/Appointments';
+
+  // ==================== Schedule ====================
+  static const String availableSlots = 'Schedule/AvaliableSlot';
+
+  // ==================== Appointment ====================
+  static const String bookAppointment = 'Appointment/Book';
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\network\network_info.dart ==========
+
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
+
+class NetworkInfo {
+  static final InternetConnection _checker = InternetConnection();
+
+  static Future<bool> get isConnected async {
+    return await _checker.hasInternetAccess;
+  }
+
+  static Stream<InternetStatus> get onStatusChange {
+    return _checker.onStatusChange;
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\storage\app_local_storage.dart ==========
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+class AppLocalStorage {
+  static late SharedPreferences _preferences;
+
+  static const String token = 'token';
+  static const String userType = 'userType';
+  static const String onboardingSeen = 'onboardingSeen';
+
+  static Future<void> init() async {
+    _preferences = await SharedPreferences.getInstance();
+  }
+
+  static Future<void> cacheData(String key, dynamic value) async {
+    if (value is String) await _preferences.setString(key, value);
+    if (value is bool) await _preferences.setBool(key, value);
+    if (value is int) await _preferences.setInt(key, value);
+  }
+
+  static dynamic getData(String key) {
+    return _preferences.get(key);
+  }
+
+  static Future<void> removeData(String key) async {
+    await _preferences.remove(key);
+  }
+
+  static Future<void> clearAll() async {
+    await _preferences.clear();
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\storage\hive_service.dart ==========
+
+import 'package:hive_flutter/hive_flutter.dart';
+
+class HiveService {
+  HiveService._();
+
+  // ==================== Box Names ====================
+  static const String userBox = 'user_box';
+  static const String appointmentsBox = 'appointments_box';
+  static const String visitsBox = 'visits_box';
+  static const String labResultsBox = 'lab_results_box';
+  static const String radiologyBox = 'radiology_box';
+  static const String prescriptionsBox = 'prescriptions_box';
+  static const String queueBox = 'queue_box';
+  static const String settingsBox = 'settings_box';
+
+  // ==================== Initialize ====================
+  static Future<void> init() async {
+    await Hive.initFlutter();
+
+    // Register adapters here later
+    // Hive.registerAdapter(UserModelAdapter());
+
+    // Open boxes
+    await Hive.openBox(userBox);
+    await Hive.openBox(appointmentsBox);
+    await Hive.openBox(visitsBox);
+    await Hive.openBox(labResultsBox);
+    await Hive.openBox(radiologyBox);
+    await Hive.openBox(prescriptionsBox);
+    await Hive.openBox(queueBox);
+    await Hive.openBox(settingsBox);
+  }
+
+  // ==================== Generic Operations ====================
+
+  // Save single item
+  static Future<void> put({
+    required String boxName,
+    required String key,
+    required dynamic value,
+  }) async {
+    final box = Hive.box(boxName);
+    await box.put(key, value);
+  }
+
+  // Get single item
+  static dynamic get({required String boxName, required String key}) {
+    final box = Hive.box(boxName);
+    return box.get(key);
+  }
+
+  // Save list of items
+  static Future<void> putAll({
+    required String boxName,
+    required Map<String, dynamic> entries,
+  }) async {
+    final box = Hive.box(boxName);
+    await box.putAll(entries);
+  }
+
+  // Get all items from box
+  static List<dynamic> getAll({required String boxName}) {
+    final box = Hive.box(boxName);
+    return box.values.toList();
+  }
+
+  // Delete single item
+  static Future<void> delete({
+    required String boxName,
+    required String key,
+  }) async {
+    final box = Hive.box(boxName);
+    await box.delete(key);
+  }
+
+  // Clear entire box
+  static Future<void> clearBox({required String boxName}) async {
+    final box = Hive.box(boxName);
+    await box.clear();
+  }
+
+  // Clear all boxes (for logout)
+  static Future<void> clearAll() async {
+    await Hive.box(userBox).clear();
+    await Hive.box(appointmentsBox).clear();
+    await Hive.box(visitsBox).clear();
+    await Hive.box(labResultsBox).clear();
+    await Hive.box(radiologyBox).clear();
+    await Hive.box(prescriptionsBox).clear();
+    await Hive.box(queueBox).clear();
+  }
+
+  // Check if box has data
+  static bool hasData({required String boxName, required String key}) {
+    final box = Hive.box(boxName);
+    return box.containsKey(key);
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\theme\app_colors.dart ==========
+
+import 'package:flutter/material.dart';
+
+class AppColors {
+  static const Color primaryColor = Color(0xff254EDB);
+  static const Color secondaryColor = Color(0xffF5EFE1);
+  static const Color darkColor = Color(0xff18181B);
+  static const Color accentColor = Color(0xffF7F8F9);
+  static const Color borderColor = Color(0xffE8ECF4);
+  static const Color greyColor = Color(0xff8391A1);
+  static const Color darkGreyColor = Color(0xff6A707C);
+  static const Color whiteColor = Color(0xffffffff);
+  static const Color redColor = Color(0xffFF383C);
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\theme\app_text_styles.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+
+class AppTextStyles {
+  AppTextStyles._();
+
+  // ==================== Headings ====================
+  static TextStyle heading1({Color? color, FontWeight? fontWeight}) {
+    return TextStyle(
+      fontSize: 30,
+      color: color ?? AppColors.darkColor,
+      fontWeight: fontWeight ?? FontWeight.bold,
+    );
+  }
+
+  static TextStyle heading2({Color? color, FontWeight? fontWeight}) {
+    return TextStyle(
+      fontSize: 24,
+      color: color ?? AppColors.darkColor,
+      fontWeight: fontWeight ?? FontWeight.bold,
+    );
+  }
+
+  static TextStyle heading3({Color? color, FontWeight? fontWeight}) {
+    return TextStyle(
+      fontSize: 20,
+      color: color ?? AppColors.darkColor,
+      fontWeight: fontWeight ?? FontWeight.w600,
+    );
+  }
+
+  // ==================== Body ====================
+  static TextStyle bodyLarge({Color? color, FontWeight? fontWeight}) {
+    return TextStyle(
+      fontSize: 18,
+      color: color ?? AppColors.darkColor,
+      fontWeight: fontWeight ?? FontWeight.normal,
+    );
+  }
+
+  static TextStyle bodyMedium({Color? color, FontWeight? fontWeight}) {
+    return TextStyle(
+      fontSize: 16,
+      color: color ?? AppColors.darkColor,
+      fontWeight: fontWeight ?? FontWeight.normal,
+    );
+  }
+
+  static TextStyle bodySmall({Color? color, FontWeight? fontWeight}) {
+    return TextStyle(
+      fontSize: 14,
+      color: color ?? AppColors.darkColor,
+      fontWeight: fontWeight ?? FontWeight.normal,
+    );
+  }
+
+  // ==================== Caption ====================
+  static TextStyle caption({Color? color, FontWeight? fontWeight}) {
+    return TextStyle(
+      fontSize: 12,
+      color: color ?? AppColors.greyColor,
+      fontWeight: fontWeight ?? FontWeight.normal,
+    );
+  }
+
+  // ==================== Button ====================
+  static TextStyle button({Color? color, FontWeight? fontWeight}) {
+    return TextStyle(
+      fontSize: 16,
+      color: color ?? AppColors.whiteColor,
+      fontWeight: fontWeight ?? FontWeight.w600,
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\theme\app_theme.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/constants/app_fonts.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+
+class AppTheme {
+  AppTheme._();
+
+  static ThemeData lightTheme = ThemeData(
+    scaffoldBackgroundColor: AppColors.whiteColor,
+    fontFamily: AppFonts.dmSerifDisplay,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primaryColor,
+      primary: AppColors.primaryColor,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.whiteColor,
+      elevation: 0,
+      centerTitle: true,
+      iconTheme: IconThemeData(color: AppColors.darkColor),
+      titleTextStyle: TextStyle(
+        color: AppColors.darkColor,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      fillColor: AppColors.accentColor,
+      filled: true,
+      hintStyle: const TextStyle(fontSize: 16, color: AppColors.greyColor),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primaryColor, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.redColor),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.redColor, width: 1.5),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryColor,
+        foregroundColor: AppColors.whiteColor,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+    ),
+  );
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\utils\navigation.dart ==========
+
+import 'package:flutter/material.dart';
+
+void pushTo(BuildContext context, Widget newScreen) {
+  Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (context) => newScreen));
+}
+
+void pushWithReplacement(BuildContext context, Widget newScreen) {
+  Navigator.of(
+    context,
+  ).pushReplacement(MaterialPageRoute(builder: (context) => newScreen));
+}
+
+void pushAndRemoveUntil(BuildContext context, Widget newScreen) {
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (context) => newScreen),
+    (route) => false,
+  );
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\utils\validators.dart ==========
+
+bool emailValidation(String email) {
+  return RegExp(
+          r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
+      .hasMatch(email);
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\widgets\custom_button.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class CustomButton extends StatelessWidget {
+  const CustomButton({
+    super.key,
+    this.width = double.infinity,
+    this.height = 50,
+    this.radius = 10,
+    required this.text,
+    this.bgColor,
+    this.textColor,
+    required this.onPressed,
+    this.isLoading = false,
+  });
+
+  final double width;
+  final double height;
+  final Color? bgColor;
+  final Color? textColor;
+  final String text;
+  final VoidCallback? onPressed;
+  final double radius;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bgColor ?? AppColors.primaryColor,
+          disabledBackgroundColor: AppColors.greyColor.withValues(alpha: 0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radius),
+          ),
+        ),
+        onPressed: isLoading ? null : onPressed,
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.whiteColor,
+                ),
+              )
+            : Text(
+                text,
+                style: AppTextStyles.button(
+                  color: textColor ?? AppColors.whiteColor,
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\widgets\custom_outline_button.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class CustomOutlineButton extends StatelessWidget {
+  const CustomOutlineButton({
+    super.key,
+    this.width = double.infinity,
+    this.height = 50,
+    required this.text,
+    this.bgColor,
+    this.textColor,
+    required this.onPressed,
+  });
+
+  final double width;
+  final double height;
+  final Color? bgColor;
+  final Color? textColor;
+  final String text;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          side: const BorderSide(color: AppColors.darkColor),
+          backgroundColor: bgColor ?? AppColors.whiteColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Text(
+          text,
+          style: AppTextStyles.button(color: textColor ?? AppColors.darkColor),
+        ),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\core\widgets\custom_text_field.dart ==========
+
+import 'package:flutter/material.dart';
+
+class CustomTextField extends StatelessWidget {
+  const CustomTextField({
+    super.key,
+    required this.controller,
+    required this.hintText,
+    this.label,
+    this.validator,
+    this.obscureText = false,
+    this.suffixIcon,
+    this.prefixIcon,
+    this.keyboardType,
+    this.textInputAction,
+    this.maxLines = 1,
+    this.enabled = true,
+    this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final String? label;
+  final String? Function(String?)? validator;
+  final bool obscureText;
+  final Widget? suffixIcon;
+  final Widget? prefixIcon;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final int maxLines;
+  final bool enabled;
+  final void Function(String)? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (label != null) ...[
+          Text(
+            label!,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+        ],
+        TextFormField(
+          controller: controller,
+          validator: validator,
+          obscureText: obscureText,
+          obscuringCharacter: '●',
+          keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          maxLines: maxLines,
+          enabled: enabled,
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            hintText: hintText,
+            suffixIcon: suffixIcon,
+            prefixIcon: prefixIcon,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\data\datasources\appointments_remote_datasource.dart ==========
+
+import 'package:nabd/core/network/api_client.dart';
+import 'package:nabd/core/network/endpoints.dart';
+import 'package:nabd/features/appointments/data/models/appointment_model.dart';
+import 'package:nabd/features/appointments/data/models/appointment_request_model.dart';
+import 'package:nabd/features/appointments/data/models/clinic_model.dart';
+import 'package:nabd/features/appointments/data/models/doctor_model.dart';
+import 'package:nabd/features/appointments/data/models/time_slot_model.dart';
+
+class AppointmentsRemoteDatasource {
+  // ==================== Clinics ====================
+  Future<List<ClinicModel>> getClinics() async {
+    final response = await ApiClient.get(endpoint: AppEndpoints.clinics);
+    final data = response.data['data'] as List;
+    return data.map((e) => ClinicModel.fromJson(e)).toList();
+  }
+
+  // ==================== Doctors ====================
+  Future<List<DoctorModel>> getDoctorsByClinic(int clinicId) async {
+    final response = await ApiClient.get(
+      endpoint: AppEndpoints.doctors,
+      queryParameters: {'Clinic': clinicId},
+    );
+    final data = response.data['data'] as List;
+    return data.map((e) => DoctorModel.fromJson(e)).toList();
+  }
+
+  // ==================== Available Slots ====================
+  Future<List<TimeSlotModel>> getAvailableTimeSlots({
+    required int doctorId,
+    required int clinicId,
+    required String date,
+  }) async {
+    final response = await ApiClient.get(
+      endpoint: AppEndpoints.availableSlots,
+      queryParameters: {
+        'DoctorId': doctorId,
+        'ClinicId': clinicId,
+        'Date': date,
+      },
+    );
+    final data = response.data['data'] as List;
+    return data.map((e) => TimeSlotModel.fromJson(e)).toList();
+  }
+
+  // ==================== Book Appointment ====================
+  Future<void> bookAppointment(AppointmentRequestModel request) async {
+    await ApiClient.post(
+      endpoint: AppEndpoints.bookAppointment,
+      data: request.toJson(),
+    );
+  }
+
+  // ==================== My Appointments ====================
+  Future<List<AppointmentModel>> getMyAppointments() async {
+    final response = await ApiClient.get(endpoint: AppEndpoints.myAppointments);
+    final data = response.data['data'] as List;
+    return data.map((e) => AppointmentModel.fromJson(e)).toList();
+  }
+
+  // ==================== Cancel Appointment ====================
+  Future<void> cancelAppointment(int appointmentId) async {
+    // TODO: استبدل بـ endpoint لما تجهز
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\data\models\appointment_model.dart ==========
+
+class AppointmentModel {
+  final int appointmentId;
+  final int doctorId;
+  final String doctorName;
+  final String clinicName;
+  final String appointmentDate;
+  final String status;
+
+  const AppointmentModel({
+    required this.appointmentId,
+    required this.doctorId,
+    required this.doctorName,
+    required this.clinicName,
+    required this.appointmentDate,
+    required this.status,
+  });
+
+  factory AppointmentModel.fromJson(Map<String, dynamic> json) {
+    return AppointmentModel(
+      appointmentId: json['appointmentId'] ?? 0,
+      doctorId: json['doctorId'] ?? 0,
+      doctorName: json['doctorName'] ?? '',
+      clinicName: json['clinicName'] ?? '',
+      appointmentDate: json['appointmentDate'] ?? '',
+      status: json['status'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'appointmentId': appointmentId,
+      'doctorId': doctorId,
+      'doctorName': doctorName,
+      'clinicName': clinicName,
+      'appointmentDate': appointmentDate,
+      'status': status,
+    };
+  }
+
+  // Helpers
+  bool get isScheduled => status.toLowerCase() == 'scheduled';
+  bool get isCancelled => status.toLowerCase() == 'cancelled';
+  bool get isCompleted => status.toLowerCase() == 'completed';
+
+  // Format Date للعرض
+  String get formattedDate {
+    try {
+      final date = DateTime.parse(appointmentDate);
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${date.day} ${months[date.month - 1]}, ${date.year}';
+    } catch (e) {
+      return appointmentDate;
+    }
+  }
+
+  // Format Time للعرض
+  String get formattedTime {
+    try {
+      final date = DateTime.parse(appointmentDate);
+      final hour = date.hour;
+      final minute = date.minute.toString().padLeft(2, '0');
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+      return '$displayHour:$minute $period';
+    } catch (e) {
+      return '';
+    }
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\data\models\appointment_request_model.dart ==========
+
+class AppointmentRequestModel {
+  final int doctorId;
+  final int clinicId;
+  final String appointmentDate; // "2026-04-20T09:10:00"
+  final int appointmentType;
+  final String? notes;
+  final String fileNumber;
+
+  const AppointmentRequestModel({
+    required this.doctorId,
+    required this.clinicId,
+    required this.appointmentDate,
+    required this.appointmentType,
+    this.notes,
+    required this.fileNumber,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'doctorId': doctorId,
+      'clinicId': clinicId,
+      'appointmentDate': appointmentDate,
+      'appointmentType': appointmentType,
+      if (notes != null && notes!.isNotEmpty) 'notes': notes,
+      'fileNumber': fileNumber,
+    };
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\data\models\clinic_model.dart ==========
+
+class ClinicModel {
+  final int id;
+  final String name;
+
+  const ClinicModel({required this.id, required this.name});
+
+  factory ClinicModel.fromJson(Map<String, dynamic> json) {
+    return ClinicModel(id: json['id'], name: json['name'] ?? '');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name};
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\data\models\doctor_model.dart ==========
+
+class DoctorModel {
+  final int id;
+  final String name;
+  final String? specialization;
+  final int? clinicId;
+
+  const DoctorModel({
+    required this.id,
+    required this.name,
+    this.specialization,
+    this.clinicId,
+  });
+
+  factory DoctorModel.fromJson(Map<String, dynamic> json) {
+    return DoctorModel(
+      id: json['id'],
+      name: json['name'] ?? '',
+      specialization: json['specialization'],
+      clinicId: json['clinicId'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      if (specialization != null) 'specialization': specialization,
+      if (clinicId != null) 'clinicId': clinicId,
+    };
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\data\models\time_slot_model.dart ==========
+
+class TimeSlotModel {
+  final int doctorId;
+  final String doctorName;
+  final String specialization;
+  final int clinicId;
+  final String clinicName;
+  final String date;
+  final String slotStart;
+  final String slotEnd;
+  final bool isAvailable;
+
+  const TimeSlotModel({
+    required this.doctorId,
+    required this.doctorName,
+    required this.specialization,
+    required this.clinicId,
+    required this.clinicName,
+    required this.date,
+    required this.slotStart,
+    required this.slotEnd,
+    required this.isAvailable,
+  });
+
+  factory TimeSlotModel.fromJson(Map<String, dynamic> json) {
+    return TimeSlotModel(
+      doctorId: json['doctorId'] ?? 0,
+      doctorName: json['doctorName'] ?? '',
+      specialization: json['specialization'] ?? '',
+      clinicId: json['clinicId'] ?? 0,
+      clinicName: json['clinicName'] ?? '',
+      date: json['date'] ?? '',
+      slotStart: json['slotStart'] ?? '',
+      slotEnd: json['slotEnd'] ?? '',
+      isAvailable: json['isAvailable'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'doctorId': doctorId,
+      'doctorName': doctorName,
+      'specialization': specialization,
+      'clinicId': clinicId,
+      'clinicName': clinicName,
+      'date': date,
+      'slotStart': slotStart,
+      'slotEnd': slotEnd,
+      'isAvailable': isAvailable,
+    };
+  }
+
+  // عشان نعرض الوقت بشكل readable
+  String get displayTime {
+    final start = slotStart.substring(0, 5); // "09:00"
+    return start;
+  }
+
+  // AM or PM
+  String get period {
+    final hour = int.tryParse(slotStart.split(':')[0]) ?? 0;
+    return hour < 12 ? 'AM' : 'PM';
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\data\repositories\appointments_repository_impl.dart ==========
+
+import 'package:nabd/core/errors/exceptions.dart';
+import 'package:nabd/features/appointments/data/datasources/appointments_remote_datasource.dart';
+import 'package:nabd/features/appointments/data/models/appointment_model.dart';
+import 'package:nabd/features/appointments/data/models/appointment_request_model.dart';
+import 'package:nabd/features/appointments/data/models/clinic_model.dart';
+import 'package:nabd/features/appointments/data/models/doctor_model.dart';
+import 'package:nabd/features/appointments/data/models/time_slot_model.dart';
+import 'package:nabd/features/appointments/domain/repositories/appointments_repository.dart';
+
+class AppointmentsRepositoryImpl implements AppointmentsRepository {
+  final AppointmentsRemoteDatasource remoteDatasource;
+
+  AppointmentsRepositoryImpl({required this.remoteDatasource});
+
+  @override
+  Future<List<ClinicModel>> getClinics() async {
+    try {
+      return await remoteDatasource.getClinics();
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: 'Failed to load clinics');
+    }
+  }
+
+  @override
+  Future<List<DoctorModel>> getDoctorsByClinic(int clinicId) async {
+    try {
+      return await remoteDatasource.getDoctorsByClinic(clinicId);
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: 'Failed to load doctors');
+    }
+  }
+
+  @override
+  Future<List<TimeSlotModel>> getAvailableTimeSlots({
+    required int doctorId,
+    required int clinicId,
+    required String date,
+  }) async {
+    try {
+      return await remoteDatasource.getAvailableTimeSlots(
+        doctorId: doctorId,
+        clinicId: clinicId,
+        date: date,
+      );
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: 'Failed to load time slots');
+    }
+  }
+
+  @override
+  Future<void> bookAppointment({
+    required int clinicId,
+    required int doctorId,
+    required String appointmentDate,
+    required int appointmentType,
+    required String fileNumber,
+    String? notes,
+  }) async {
+    try {
+      final request = AppointmentRequestModel(
+        doctorId: doctorId,
+        clinicId: clinicId,
+        appointmentDate: appointmentDate,
+        appointmentType: appointmentType,
+        notes: notes,
+        fileNumber: fileNumber,
+      );
+      await remoteDatasource.bookAppointment(request);
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: 'Failed to book appointment');
+    }
+  }
+
+  @override
+  Future<List<AppointmentModel>> getMyAppointments() async {
+    try {
+      return await remoteDatasource.getMyAppointments();
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: 'Failed to load appointments');
+    }
+  }
+
+  @override
+  Future<void> cancelAppointment(int appointmentId) async {
+    try {
+      await remoteDatasource.cancelAppointment(appointmentId);
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: 'Failed to cancel appointment');
+    }
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\domain\repositories\appointments_repository.dart ==========
+
+import 'package:nabd/features/appointments/data/models/appointment_model.dart';
+import 'package:nabd/features/appointments/data/models/clinic_model.dart';
+import 'package:nabd/features/appointments/data/models/doctor_model.dart';
+import 'package:nabd/features/appointments/data/models/time_slot_model.dart';
+
+abstract class AppointmentsRepository {
+  Future<List<ClinicModel>> getClinics();
+
+  Future<List<DoctorModel>> getDoctorsByClinic(int clinicId);
+
+  Future<List<TimeSlotModel>> getAvailableTimeSlots({
+    required int doctorId,
+    required int clinicId,
+    required String date,
+  });
+
+  Future<void> bookAppointment({
+    required int clinicId,
+    required int doctorId,
+    required String appointmentDate,
+    required int appointmentType,
+    required String fileNumber,
+    String? notes,
+  });
+
+  // ✅ بقت method واحدة بدل اتنين
+  Future<List<AppointmentModel>> getMyAppointments();
+
+  Future<void> cancelAppointment(int appointmentId);
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\bloc\book_appointment_bloc.dart ==========
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nabd/core/errors/exceptions.dart';
+import 'package:nabd/features/appointments/data/models/clinic_model.dart';
+import 'package:nabd/features/appointments/data/models/doctor_model.dart';
+import 'package:nabd/features/appointments/data/models/time_slot_model.dart';
+import 'package:nabd/features/appointments/domain/repositories/appointments_repository.dart';
+import 'package:nabd/features/profile/domain/repositories/profile_repository.dart';
+part 'book_appointment_event.dart';
+part 'book_appointment_state.dart';
+
+class BookAppointmentBloc
+    extends Bloc<BookAppointmentEvent, BookAppointmentState> {
+  final AppointmentsRepository repository;
+  final ProfileRepository profileRepository;
+
+  BookAppointmentBloc({
+    required this.repository,
+    required this.profileRepository,
+  }) : super(const BookAppointmentState()) {
+    on<LoadClinicsRequested>(_onLoadClinics);
+    on<ResetBookingState>(_onResetBookingState);
+    on<ClinicSelected>(_onClinicSelected);
+    on<DoctorSelected>(_onDoctorSelected);
+    on<DateSelected>(_onDateSelected);
+    on<TimeSlotSelected>(_onTimeSlotSelected);
+    on<NotesChanged>(_onNotesChanged);
+    on<PeriodChanged>(_onPeriodChanged);
+    on<BookAppointmentSubmitted>(_onBookAppointmentSubmitted);
+  }
+
+  // ==================== Load Clinics ====================
+  Future<void> _onLoadClinics(
+    LoadClinicsRequested event,
+    Emitter<BookAppointmentState> emit,
+  ) async {
+    emit(state.copyWith(isClinicsLoading: true, clearError: true));
+    try {
+      final clinics = await repository.getClinics();
+      emit(state.copyWith(clinics: clinics, isClinicsLoading: false));
+    } on ServerException catch (e) {
+      emit(state.copyWith(isClinicsLoading: false, errorMessage: e.message));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isClinicsLoading: false,
+          errorMessage: 'Failed to load clinics',
+        ),
+      );
+    }
+  }
+
+  // ==================== Clinic Selected ====================
+  Future<void> _onClinicSelected(
+    ClinicSelected event,
+    Emitter<BookAppointmentState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        selectedClinic: event.clinic,
+        isDoctorsLoading: true,
+        clearSelectedDoctor: true,
+        clearSelectedTimeSlot: true,
+        doctors: [],
+        timeSlots: [],
+      ),
+    );
+
+    try {
+      final doctors = await repository.getDoctorsByClinic(event.clinic.id);
+      emit(state.copyWith(doctors: doctors, isDoctorsLoading: false));
+    } on ServerException catch (e) {
+      emit(state.copyWith(isDoctorsLoading: false, errorMessage: e.message));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isDoctorsLoading: false,
+          errorMessage: 'Failed to load doctors',
+        ),
+      );
+    }
+  }
+
+  // ==================== Doctor Selected ====================
+  Future<void> _onDoctorSelected(
+    DoctorSelected event,
+    Emitter<BookAppointmentState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        selectedDoctor: event.doctor,
+        clearSelectedTimeSlot: true,
+        timeSlots: [],
+      ),
+    );
+
+    if (state.selectedDate != null) {
+      await _loadTimeSlots(
+        event.doctor.id,
+        state.selectedClinic!.id,
+        state.selectedDate!,
+        emit,
+      );
+    }
+  }
+
+  // ==================== Date Selected ====================
+  Future<void> _onDateSelected(
+    DateSelected event,
+    Emitter<BookAppointmentState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        selectedDate: event.date,
+        clearSelectedTimeSlot: true,
+        timeSlots: [],
+      ),
+    );
+
+    if (state.selectedDoctor != null) {
+      await _loadTimeSlots(
+        state.selectedDoctor!.id,
+        state.selectedClinic!.id,
+        event.date,
+        emit,
+      );
+    }
+  }
+
+  // ==================== Load Time Slots ====================
+  Future<void> _loadTimeSlots(
+    int doctorId,
+    int clinicId,
+    DateTime date,
+    Emitter<BookAppointmentState> emit,
+  ) async {
+    emit(state.copyWith(isTimeSlotsLoading: true));
+    try {
+      final formattedDate =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final slots = await repository.getAvailableTimeSlots(
+        doctorId: doctorId,
+        clinicId: clinicId,
+        date: formattedDate,
+      );
+      emit(state.copyWith(timeSlots: slots, isTimeSlotsLoading: false));
+    } on ServerException catch (e) {
+      emit(state.copyWith(isTimeSlotsLoading: false, errorMessage: e.message));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isTimeSlotsLoading: false,
+          errorMessage: 'Failed to load time slots',
+        ),
+      );
+    }
+  }
+
+  // ==================== Time Slot Selected ====================
+  void _onTimeSlotSelected(
+    TimeSlotSelected event,
+    Emitter<BookAppointmentState> emit,
+  ) {
+    emit(state.copyWith(selectedTimeSlot: event.timeSlot));
+  }
+
+  // ==================== Notes Changed ====================
+  void _onNotesChanged(NotesChanged event, Emitter<BookAppointmentState> emit) {
+    emit(state.copyWith(notes: event.notes));
+  }
+
+ 
+  
+
+  // ==================== Period Changed ====================
+  void _onPeriodChanged(
+    PeriodChanged event,
+    Emitter<BookAppointmentState> emit,
+  ) {
+    emit(
+      state.copyWith(selectedPeriod: event.period, clearSelectedTimeSlot: true),
+    );
+  }
+
+  // ==================== Book Appointment ====================
+  Future<void> _onBookAppointmentSubmitted(
+    BookAppointmentSubmitted event,
+    Emitter<BookAppointmentState> emit,
+  ) async {
+    if (!state.isFormValid) return;
+
+    // جيب الـ fileNumber من الـ profile
+    final fileNumber = profileRepository.getFileNumber() ?? '';
+    if (fileNumber.isEmpty) {
+      emit(
+        state.copyWith(
+          errorMessage: 'File number not found. Please update your profile.',
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(isBooking: true, clearError: true));
+    try {
+      final date = state.selectedDate!;
+      final slot = state.selectedTimeSlot!;
+      final time = slot.slotStart.substring(0, 5);
+      final appointmentDate =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}T$time:00';
+
+      await repository.bookAppointment(
+        clinicId: state.selectedClinic!.id,
+        doctorId: state.selectedDoctor!.id,
+        appointmentDate: appointmentDate,
+        appointmentType: 1,
+        fileNumber: fileNumber,
+        notes: state.notes,
+      );
+      emit(state.copyWith(isBooking: false, isBookingSuccess: true));
+    } on ServerException catch (e) {
+      emit(state.copyWith(isBooking: false, errorMessage: e.message));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isBooking: false,
+          errorMessage: 'Failed to book appointment',
+        ),
+      );
+    }
+  }
+
+  // ==================== Reset State ====================
+  Future<void> _onResetBookingState(
+    ResetBookingState event,
+    Emitter<BookAppointmentState> emit,
+  ) async {
+    emit(const BookAppointmentState());
+    final clinics = await repository.getClinics();
+    emit(BookAppointmentState(clinics: clinics));
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\bloc\book_appointment_event.dart ==========
+
+part of 'book_appointment_bloc.dart';
+
+abstract class BookAppointmentEvent {}
+
+class LoadClinicsRequested extends BookAppointmentEvent {}
+
+class ResetBookingState extends BookAppointmentEvent {}
+
+class ClinicSelected extends BookAppointmentEvent {
+  final ClinicModel clinic;
+  ClinicSelected({required this.clinic});
+}
+
+class DoctorSelected extends BookAppointmentEvent {
+  final DoctorModel doctor;
+  DoctorSelected({required this.doctor});
+}
+
+class DateSelected extends BookAppointmentEvent {
+  final DateTime date;
+  DateSelected({required this.date});
+}
+
+class TimeSlotSelected extends BookAppointmentEvent {
+  final TimeSlotModel timeSlot;
+  TimeSlotSelected({required this.timeSlot});
+}
+
+class NotesChanged extends BookAppointmentEvent {
+  final String notes;
+  NotesChanged({required this.notes});
+}
+
+class FileNumberChanged extends BookAppointmentEvent {
+  final String fileNumber;
+  FileNumberChanged({required this.fileNumber});
+}
+
+class PeriodChanged extends BookAppointmentEvent {
+  final String period;
+  PeriodChanged({required this.period});
+}
+
+class BookAppointmentSubmitted extends BookAppointmentEvent {}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\bloc\book_appointment_state.dart ==========
+
+part of 'book_appointment_bloc.dart';
+
+class BookAppointmentState {
+  final List<ClinicModel> clinics;
+  final List<DoctorModel> doctors;
+  final List<TimeSlotModel> timeSlots;
+
+  final ClinicModel? selectedClinic;
+  final DoctorModel? selectedDoctor;
+  final DateTime? selectedDate;
+  final TimeSlotModel? selectedTimeSlot;
+  final String selectedPeriod;
+  final String notes;
+  final String fileNumber;
+
+  final bool isClinicsLoading;
+  final bool isDoctorsLoading;
+  final bool isTimeSlotsLoading;
+  final bool isBooking;
+
+  final bool isBookingSuccess;
+  final String? errorMessage;
+
+  const BookAppointmentState({
+    this.clinics = const [],
+    this.doctors = const [],
+    this.timeSlots = const [],
+    this.selectedClinic,
+    this.selectedDoctor,
+    this.selectedDate,
+    this.selectedTimeSlot,
+    this.selectedPeriod = 'AM',
+    this.notes = '',
+    this.fileNumber = '',
+    this.isClinicsLoading = false,
+    this.isDoctorsLoading = false,
+    this.isTimeSlotsLoading = false,
+    this.isBooking = false,
+    this.isBookingSuccess = false,
+    this.errorMessage,
+  });
+
+  int get completedSteps {
+    int steps = 0;
+    if (selectedClinic != null) steps++;
+    if (selectedDoctor != null) steps++;
+    if (selectedDate != null) steps++;
+    if (selectedTimeSlot != null) steps++;
+    return steps;
+  }
+
+  bool get isFormValid =>
+      selectedClinic != null &&
+      selectedDoctor != null &&
+      selectedDate != null &&
+      selectedTimeSlot != null &&
+      fileNumber.isNotEmpty;
+
+  List<TimeSlotModel> get filteredTimeSlots =>
+      timeSlots.where((slot) => slot.period == selectedPeriod).toList();
+
+  BookAppointmentState copyWith({
+    List<ClinicModel>? clinics,
+    List<DoctorModel>? doctors,
+    List<TimeSlotModel>? timeSlots,
+    ClinicModel? selectedClinic,
+    DoctorModel? selectedDoctor,
+    DateTime? selectedDate,
+    TimeSlotModel? selectedTimeSlot,
+    String? selectedPeriod,
+    String? notes,
+    String? fileNumber,
+    bool? isClinicsLoading,
+    bool? isDoctorsLoading,
+    bool? isTimeSlotsLoading,
+    bool? isBooking,
+    bool? isBookingSuccess,
+    String? errorMessage,
+    bool clearSelectedDoctor = false,
+    bool clearSelectedTimeSlot = false,
+    bool clearError = false,
+  }) {
+    return BookAppointmentState(
+      clinics: clinics ?? this.clinics,
+      doctors: doctors ?? this.doctors,
+      timeSlots: timeSlots ?? this.timeSlots,
+      selectedClinic: selectedClinic ?? this.selectedClinic,
+      selectedDoctor: clearSelectedDoctor
+          ? null
+          : selectedDoctor ?? this.selectedDoctor,
+      selectedDate: selectedDate ?? this.selectedDate,
+      selectedTimeSlot: clearSelectedTimeSlot
+          ? null
+          : selectedTimeSlot ?? this.selectedTimeSlot,
+      selectedPeriod: selectedPeriod ?? this.selectedPeriod,
+      notes: notes ?? this.notes,
+      fileNumber: fileNumber ?? this.fileNumber,
+      isClinicsLoading: isClinicsLoading ?? this.isClinicsLoading,
+      isDoctorsLoading: isDoctorsLoading ?? this.isDoctorsLoading,
+      isTimeSlotsLoading: isTimeSlotsLoading ?? this.isTimeSlotsLoading,
+      isBooking: isBooking ?? this.isBooking,
+      isBookingSuccess: isBookingSuccess ?? this.isBookingSuccess,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\bloc\my_appointments_bloc.dart ==========
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nabd/core/errors/exceptions.dart';
+import 'package:nabd/features/appointments/data/models/appointment_model.dart';
+import 'package:nabd/features/appointments/domain/repositories/appointments_repository.dart';
+
+part 'my_appointments_event.dart';
+part 'my_appointments_state.dart';
+
+class MyAppointmentsBloc
+    extends Bloc<MyAppointmentsEvent, MyAppointmentsState> {
+  final AppointmentsRepository repository;
+
+  MyAppointmentsBloc({required this.repository})
+    : super(const MyAppointmentsState()) {
+    on<LoadMyAppointments>(_onLoadMyAppointments);
+    on<CancelAppointmentRequested>(_onCancelAppointment);
+  }
+
+  // ==================== Load My Appointments ====================
+  Future<void> _onLoadMyAppointments(
+    LoadMyAppointments event,
+    Emitter<MyAppointmentsState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, clearError: true));
+    try {
+      final appointments = await repository.getMyAppointments();
+      emit(state.copyWith(appointments: appointments, isLoading: false));
+    } on ServerException catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: e.message));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          errorMessage: 'Failed to load appointments',
+        ),
+      );
+    }
+  }
+
+  // ==================== Cancel Appointment ====================
+  Future<void> _onCancelAppointment(
+    CancelAppointmentRequested event,
+    Emitter<MyAppointmentsState> emit,
+  ) async {
+    emit(state.copyWith(isCancelling: true, clearError: true));
+    try {
+      await repository.cancelAppointment(event.appointmentId);
+
+      final updated = state.appointments
+          .where((a) => a.appointmentId != event.appointmentId)
+          .toList();
+
+      emit(
+        state.copyWith(
+          isCancelling: false,
+          appointments: updated,
+          successMessage: 'Appointment cancelled successfully',
+        ),
+      );
+    } on ServerException catch (e) {
+      emit(state.copyWith(isCancelling: false, errorMessage: e.message));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isCancelling: false,
+          errorMessage: 'Failed to cancel appointment',
+        ),
+      );
+    }
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\bloc\my_appointments_event.dart ==========
+
+part of 'my_appointments_bloc.dart';
+
+abstract class MyAppointmentsEvent {}
+
+class LoadMyAppointments extends MyAppointmentsEvent {}
+
+class CancelAppointmentRequested extends MyAppointmentsEvent {
+  final int appointmentId;
+  CancelAppointmentRequested({required this.appointmentId});
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\bloc\my_appointments_state.dart ==========
+
+part of 'my_appointments_bloc.dart';
+
+class MyAppointmentsState {
+  final List<AppointmentModel> appointments;
+  final bool isLoading;
+  final bool isCancelling;
+  final String? errorMessage;
+  final String? successMessage;
+
+  const MyAppointmentsState({
+    this.appointments = const [],
+    this.isLoading = false,
+    this.isCancelling = false,
+    this.errorMessage,
+    this.successMessage,
+  });
+
+  // Upcoming = Scheduled
+  List<AppointmentModel> get upcomingAppointments =>
+      appointments.where((a) => a.isScheduled).toList();
+
+  // Past = Completed or Cancelled
+  List<AppointmentModel> get pastAppointments =>
+      appointments.where((a) => a.isCompleted || a.isCancelled).toList();
+
+  MyAppointmentsState copyWith({
+    List<AppointmentModel>? appointments,
+    bool? isLoading,
+    bool? isCancelling,
+    String? errorMessage,
+    String? successMessage,
+    bool clearError = false,
+    bool clearSuccess = false,
+  }) {
+    return MyAppointmentsState(
+      appointments: appointments ?? this.appointments,
+      isLoading: isLoading ?? this.isLoading,
+      isCancelling: isCancelling ?? this.isCancelling,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      successMessage: clearSuccess
+          ? null
+          : successMessage ?? this.successMessage,
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\pages\book_appointment_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+import 'package:nabd/core/widgets/custom_button.dart';
+import 'package:nabd/core/widgets/custom_text_field.dart';
+import 'package:nabd/features/appointments/presentation/bloc/book_appointment_bloc.dart';
+import 'package:nabd/features/appointments/presentation/widgets/appointment_calendar.dart';
+import 'package:nabd/features/appointments/presentation/widgets/appointment_dropdown.dart';
+import 'package:nabd/features/appointments/presentation/widgets/steps_progress_bar.dart';
+import 'package:nabd/features/appointments/presentation/widgets/time_slots_grid.dart';
+
+class BookAppointmentScreen extends StatefulWidget {
+  const BookAppointmentScreen({super.key});
+
+  @override
+  State<BookAppointmentScreen> createState() => _BookAppointmentScreenState();
+}
+
+class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
+  final _notesController = TextEditingController();
+
+  DateTime _focusedMonth = DateTime.now();
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Book Appointment'),
+        automaticallyImplyLeading: false,
+      ),
+      body: BlocConsumer<BookAppointmentBloc, BookAppointmentState>(
+        listener: (context, state) {
+          // Success
+          if (state.isBookingSuccess) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (dialogContext) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 64,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Appointment Booked!',
+                        style: AppTextStyles.heading3(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Your appointment has been confirmed successfully.',
+                        style: AppTextStyles.bodySmall(
+                          color: AppColors.greyColor,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      CustomButton(
+                        text: 'Done',
+                        onPressed: () {
+                          // ✅ نقفل الـ dialog الأول
+                          Navigator.of(dialogContext).pop();
+                          // ✅ نعمل reset للـ bloc
+                          if (context.mounted) {
+                            context.read<BookAppointmentBloc>().add(
+                              ResetBookingState(),
+                            );
+                            _notesController.clear();
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            });
+          }
+
+          // Error
+          if (state.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage!),
+                backgroundColor: AppColors.redColor,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: 100,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Steps Progress
+                StepsProgressBar(
+                  currentStep: state.completedSteps,
+                  totalSteps: 4,
+                ),
+
+                // Select Clinic
+                AppointmentDropdown<dynamic>(
+                  label: 'Select Clinic',
+                  hint: 'Select Clinic',
+                  items: state.clinics,
+                  itemLabel: (clinic) => clinic.name,
+                  value: state.selectedClinic,
+                  isLoading: state.isClinicsLoading,
+                  onChanged: (clinic) {
+                    if (clinic != null) {
+                      context.read<BookAppointmentBloc>().add(
+                        ClinicSelected(clinic: clinic),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Select Doctor
+                AppointmentDropdown<dynamic>(
+                  label: 'Select Doctor',
+                  hint: 'Select Doctor',
+                  items: state.doctors,
+                  itemLabel: (doctor) =>
+                      '${doctor.name} (${doctor.specialization})',
+                  value: state.selectedDoctor,
+                  isLoading: state.isDoctorsLoading,
+                  isEnabled: state.selectedClinic != null,
+                  onChanged: (doctor) {
+                    if (doctor != null) {
+                      context.read<BookAppointmentBloc>().add(
+                        DoctorSelected(doctor: doctor),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Calendar
+                AppointmentCalendar(
+                  selectedDate: state.selectedDate,
+                  focusedMonth: _focusedMonth,
+                  onDateSelected: (date) {
+                    context.read<BookAppointmentBloc>().add(
+                      DateSelected(date: date),
+                    );
+                  },
+                  onMonthChanged: (month) {
+                    setState(() {
+                      _focusedMonth = month;
+                    });
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Time Slots
+                if (state.selectedDoctor != null &&
+                    state.selectedDate != null) ...[
+                  TimeSlotsGrid(
+                    slots: state.filteredTimeSlots,
+                    selectedSlot: state.selectedTimeSlot,
+                    selectedPeriod: state.selectedPeriod,
+                    isLoading: state.isTimeSlotsLoading,
+                    onSlotSelected: (slot) {
+                      context.read<BookAppointmentBloc>().add(
+                        TimeSlotSelected(timeSlot: slot),
+                      );
+                    },
+                    onPeriodChanged: (period) {
+                      context.read<BookAppointmentBloc>().add(
+                        PeriodChanged(period: period),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                // Additional Notes
+                CustomTextField(
+                  controller: _notesController,
+                  label: 'Additional Notes (Optional)',
+                  hintText: 'e.g. Reason for visit, existing symptoms...',
+                  maxLines: 3,
+                  onChanged: (value) {
+                    context.read<BookAppointmentBloc>().add(
+                      NotesChanged(notes: value),
+                    );
+                  },
+                ),
+                const SizedBox(height: 32),
+
+                // Confirm Button
+                CustomButton(
+                  text: 'Confirm Appointment',
+                  isLoading: state.isBooking,
+                  onPressed: state.isFormValid
+                      ? () {
+                          context.read<BookAppointmentBloc>().add(
+                            BookAppointmentSubmitted(),
+                          );
+                        }
+                      : null,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\pages\my_appointments_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+import 'package:nabd/features/appointments/presentation/bloc/my_appointments_bloc.dart';
+import 'package:nabd/features/appointments/presentation/widgets/appointment_card.dart';
+
+class MyAppointmentsScreen extends StatelessWidget {
+  const MyAppointmentsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('My Appointments'),
+          automaticallyImplyLeading: false,
+          bottom: TabBar(
+            labelColor: AppColors.primaryColor,
+            unselectedLabelColor: AppColors.greyColor,
+            indicatorColor: AppColors.primaryColor,
+            labelStyle: AppTextStyles.bodySmall(fontWeight: FontWeight.w600),
+            tabs: const [
+              Tab(text: 'Upcoming'),
+              Tab(text: 'Past'),
+            ],
+          ),
+        ),
+        body: BlocConsumer<MyAppointmentsBloc, MyAppointmentsState>(
+          listener: (context, state) {
+            if (state.successMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.successMessage!),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+            if (state.errorMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.errorMessage!),
+                  backgroundColor: AppColors.redColor,
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            if (state.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primaryColor),
+              );
+            }
+
+            return TabBarView(
+              children: [
+                // ==================== Upcoming Tab ====================
+                _buildAppointmentsList(
+                  context: context,
+                  appointments: state.upcomingAppointments,
+                  emptyMessage: 'No upcoming appointments',
+                  isUpcoming: true,
+                ),
+
+                // ==================== Past Tab ====================
+                _buildAppointmentsList(
+                  context: context,
+                  appointments: state.pastAppointments,
+                  emptyMessage: 'No past appointments',
+                  isUpcoming: false,
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppointmentsList({
+    required BuildContext context,
+    required List appointments,
+    required String emptyMessage,
+    required bool isUpcoming,
+  }) {
+    if (appointments.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isUpcoming ? Icons.calendar_today_outlined : Icons.history,
+              size: 64,
+              color: AppColors.borderColor,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              emptyMessage,
+              style: AppTextStyles.bodyMedium(color: AppColors.greyColor),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: AppColors.primaryColor,
+      onRefresh: () async {
+        context.read<MyAppointmentsBloc>().add(LoadMyAppointments());
+      },
+      child: ListView.separated(
+        padding: const EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: 100,
+        ),
+        itemCount: appointments.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final appointment = appointments[index];
+          return AppointmentCard(
+            appointment: appointment,
+            onCancelTap: isUpcoming
+                ? () => _showCancelDialog(context, appointment.appointmentId)
+                : null,
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCancelDialog(BuildContext context, int appointmentId) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Cancel Appointment',
+          style: AppTextStyles.heading3(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to cancel this appointment?',
+          style: AppTextStyles.bodySmall(color: AppColors.greyColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(
+              'No',
+              style: AppTextStyles.bodySmall(color: AppColors.greyColor),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              final bloc = context.read<MyAppointmentsBloc>();
+              Navigator.of(dialogContext).pop();
+              bloc.add(
+                CancelAppointmentRequested(appointmentId: appointmentId),
+              );
+            },
+            child: Text(
+              'Yes, Cancel',
+              style: AppTextStyles.bodySmall(
+                color: AppColors.redColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\widgets\appointment_calendar.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class AppointmentCalendar extends StatelessWidget {
+  const AppointmentCalendar({
+    super.key,
+    required this.selectedDate,
+    required this.onDateSelected,
+    required this.focusedMonth,
+    required this.onMonthChanged,
+  });
+
+  final DateTime? selectedDate;
+  final void Function(DateTime) onDateSelected;
+  final DateTime focusedMonth;
+  final void Function(DateTime) onMonthChanged;
+
+  static const List<String> _weekDays = [
+    'SUN',
+    'MON',
+    'TUE',
+    'WED',
+    'THU',
+    'FRI',
+    'SAT',
+  ];
+
+  static const List<String> _months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final daysInMonth = _getDaysInMonth(focusedMonth);
+    final firstDayOfMonth = DateTime(focusedMonth.year, focusedMonth.month, 1);
+    final startingWeekday = firstDayOfMonth.weekday % 7;
+    final today = DateTime.now();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.whiteColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Column(
+        children: [
+          // Month Header
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => onMonthChanged(
+                  DateTime(focusedMonth.year, focusedMonth.month - 1),
+                ),
+                child: const Icon(
+                  Icons.chevron_left,
+                  color: AppColors.primaryColor,
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(
+                      '${_months[focusedMonth.month - 1]} ${focusedMonth.year}',
+                      style: AppTextStyles.bodyMedium(
+                        color: AppColors.primaryColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.primaryColor,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () => onMonthChanged(
+                  DateTime(focusedMonth.year, focusedMonth.month + 1),
+                ),
+                child: const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.primaryColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Week Days Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: _weekDays.map((day) {
+              return SizedBox(
+                width: 36,
+                child: Text(
+                  day,
+                  style: AppTextStyles.caption(
+                    color: AppColors.greyColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+
+          // Days Grid
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: 1,
+            ),
+            itemCount: daysInMonth + startingWeekday,
+            itemBuilder: (context, index) {
+              if (index < startingWeekday) {
+                return const SizedBox.shrink();
+              }
+
+              final day = index - startingWeekday + 1;
+              final date = DateTime(focusedMonth.year, focusedMonth.month, day);
+
+              final isSelected =
+                  selectedDate != null &&
+                  selectedDate!.year == date.year &&
+                  selectedDate!.month == date.month &&
+                  selectedDate!.day == date.day;
+
+              final isToday =
+                  today.year == date.year &&
+                  today.month == date.month &&
+                  today.day == date.day;
+
+              final isPast = date.isBefore(
+                DateTime(today.year, today.month, today.day),
+              );
+
+              return GestureDetector(
+                onTap: isPast ? null : () => onDateSelected(date),
+                child: Container(
+                  margin: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primaryColor
+                        : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: isToday && !isSelected
+                        ? Border.all(color: AppColors.primaryColor)
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$day',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isSelected || isToday
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isSelected
+                            ? AppColors.whiteColor
+                            : isPast
+                            ? AppColors.borderColor
+                            : AppColors.darkColor,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _getDaysInMonth(DateTime date) {
+    return DateTime(date.year, date.month + 1, 0).day;
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\widgets\appointment_card.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+import 'package:nabd/features/appointments/data/models/appointment_model.dart';
+
+class AppointmentCard extends StatelessWidget {
+  const AppointmentCard({
+    super.key,
+    required this.appointment,
+    this.onCancelTap,
+  });
+
+  final AppointmentModel appointment;
+  final VoidCallback? onCancelTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.whiteColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Doctor Info Row
+          Row(
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
+                child: const Icon(
+                  Icons.person,
+                  color: AppColors.primaryColor,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Doctor Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      appointment.doctorName,
+                      style: AppTextStyles.bodyMedium(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      appointment.clinicName,
+                      style: AppTextStyles.bodySmall(
+                        color: AppColors.greyColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Status Badge
+              _buildStatusBadge(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(color: AppColors.borderColor),
+          const SizedBox(height: 12),
+
+          // Date & Time Row
+          Row(
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                color: AppColors.primaryColor,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                appointment.formattedDate,
+                style: AppTextStyles.bodySmall(
+                  color: AppColors.darkColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Icon(
+                Icons.access_time,
+                color: AppColors.primaryColor,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                appointment.formattedTime,
+                style: AppTextStyles.bodySmall(
+                  color: AppColors.darkColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+
+          // Actions (فقط للـ Upcoming)
+          // Actions (فقط للـ Upcoming)
+          if (appointment.isScheduled) ...[
+            const SizedBox(height: 12),
+            // Cancel فقط
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onCancelTap,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.redColor),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: AppTextStyles.bodySmall(
+                    color: AppColors.redColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge() {
+    Color bgColor;
+    Color textColor;
+    String label;
+
+    if (appointment.isScheduled) {
+      bgColor = AppColors.primaryColor.withValues(alpha: 0.1);
+      textColor = AppColors.primaryColor;
+      label = 'Scheduled';
+    } else if (appointment.isCompleted) {
+      bgColor = Colors.green.withValues(alpha: 0.1);
+      textColor = Colors.green;
+      label = 'Completed';
+    } else {
+      bgColor = AppColors.redColor.withValues(alpha: 0.1);
+      textColor = AppColors.redColor;
+      label = 'Cancelled';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: AppTextStyles.caption(
+          color: textColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\widgets\appointment_dropdown.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class AppointmentDropdown<T> extends StatelessWidget {
+  const AppointmentDropdown({
+    super.key,
+    required this.label,
+    required this.hint,
+    required this.items,
+    required this.itemLabel,
+    this.value,
+    required this.onChanged,
+    this.isLoading = false,
+    this.isEnabled = true,
+  });
+
+  final String label;
+  final String hint;
+  final List<T> items;
+  final String Function(T) itemLabel;
+  final T? value;
+  final void Function(T?) onChanged;
+  final bool isLoading;
+  final bool isEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.bodySmall(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: isEnabled ? AppColors.accentColor : AppColors.borderColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.borderColor),
+          ),
+          child: isLoading
+              ? const SizedBox(
+                  height: 50,
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ),
+                )
+              : DropdownButtonHideUnderline(
+                  child: DropdownButton<T>(
+                    value: value,
+                    hint: Text(
+                      hint,
+                      style: AppTextStyles.bodySmall(
+                        color: AppColors.greyColor,
+                      ),
+                    ),
+                    isExpanded: true,
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: AppColors.greyColor,
+                    ),
+                    style: AppTextStyles.bodySmall(),
+                    onChanged: isEnabled ? onChanged : null,
+                    items: items.map((item) {
+                      return DropdownMenuItem<T>(
+                        value: item,
+                        child: Text(itemLabel(item)),
+                      );
+                    }).toList(),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\widgets\steps_progress_bar.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class StepsProgressBar extends StatelessWidget {
+  const StepsProgressBar({
+    super.key,
+    required this.currentStep,
+    required this.totalSteps,
+  });
+
+  final int currentStep;
+  final int totalSteps;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Steps Completed',
+              style: AppTextStyles.bodySmall(color: AppColors.greyColor),
+            ),
+            Text(
+              '$currentStep/$totalSteps',
+              style: AppTextStyles.bodySmall(
+                color: AppColors.primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: LinearProgressIndicator(
+            value: currentStep / totalSteps,
+            backgroundColor: AppColors.borderColor,
+            color: AppColors.primaryColor,
+            minHeight: 6,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\appointments\presentation\widgets\time_slots_grid.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+import 'package:nabd/features/appointments/data/models/time_slot_model.dart';
+
+class TimeSlotsGrid extends StatelessWidget {
+  const TimeSlotsGrid({
+    super.key,
+    required this.slots,
+    required this.selectedSlot,
+    required this.selectedPeriod,
+    required this.onSlotSelected,
+    required this.onPeriodChanged,
+    this.isLoading = false,
+  });
+
+  final List<TimeSlotModel> slots;
+  final TimeSlotModel? selectedSlot;
+  final String selectedPeriod;
+  final void Function(TimeSlotModel) onSlotSelected;
+  final void Function(String) onPeriodChanged;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header with AM/PM toggle
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Available Time',
+              style: AppTextStyles.bodyMedium(fontWeight: FontWeight.w600),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.accentColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.borderColor),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: ['AM', 'PM'].map((period) {
+                  final isSelected = selectedPeriod == period;
+                  return GestureDetector(
+                    onTap: () => onPeriodChanged(period),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primaryColor
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Text(
+                        period,
+                        style: AppTextStyles.bodySmall(
+                          color: isSelected
+                              ? AppColors.whiteColor
+                              : AppColors.greyColor,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Slots
+        if (isLoading)
+          const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryColor),
+          )
+        else if (slots.isEmpty)
+          Center(
+            child: Text(
+              'No available slots',
+              style: AppTextStyles.bodySmall(color: AppColors.greyColor),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 2.5,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: slots.length,
+            itemBuilder: (context, index) {
+              final slot = slots[index];
+              final isSelected = selectedSlot?.slotStart == slot.slotStart;
+
+              return GestureDetector(
+                onTap: slot.isAvailable ? () => onSlotSelected(slot) : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primaryColor
+                        : slot.isAvailable
+                        ? AppColors.accentColor
+                        : AppColors.borderColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primaryColor
+                          : AppColors.borderColor,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      slot.displayTime,
+                      style: AppTextStyles.bodySmall(
+                        color: isSelected
+                            ? AppColors.whiteColor
+                            : slot.isAvailable
+                            ? AppColors.darkColor
+                            : AppColors.greyColor,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\data\datasources\auth_local_datasource.dart ==========
+
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/core/storage/hive_service.dart';
+import 'package:nabd/core/constants/storage_keys.dart';
+import 'package:nabd/features/auth/data/models/login_response_model.dart';
+
+class AuthLocalDatasource {
+  Future<void> saveUserData(LoginResponseModel user) async {
+    // Save token in SharedPreferences (quick access)
+    await AppLocalStorage.cacheData(StorageKeys.token, user.accessToken);
+    await AppLocalStorage.cacheData(
+      StorageKeys.refreshToken,
+      user.refreshToken,
+    );
+    await AppLocalStorage.cacheData(StorageKeys.userType, user.userType);
+    await AppLocalStorage.cacheData(StorageKeys.userName, user.userName);
+
+    // Save full user data in Hive (offline access)
+    await HiveService.put(
+      boxName: HiveService.userBox,
+      key: 'current_user',
+      value: user.toJson(),
+    );
+  }
+
+  String? getToken() {
+    return AppLocalStorage.getData(StorageKeys.token);
+  }
+
+  String? getUserType() {
+    return AppLocalStorage.getData(StorageKeys.userType);
+  }
+
+  bool isLoggedIn() {
+    final token = getToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  LoginResponseModel? getCachedUser() {
+    final data = HiveService.get(
+      boxName: HiveService.userBox,
+      key: 'current_user',
+    );
+    if (data != null) {
+      return LoginResponseModel.fromJson(Map<String, dynamic>.from(data));
+    }
+    return null;
+  }
+
+  Future<void> clearUserData() async {
+    await AppLocalStorage.removeData(StorageKeys.token);
+    await AppLocalStorage.removeData(StorageKeys.refreshToken);
+    await AppLocalStorage.removeData(StorageKeys.userType);
+    await AppLocalStorage.removeData(StorageKeys.userName);
+    await HiveService.clearBox(boxName: HiveService.userBox);
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\data\datasources\auth_remote_datasource.dart ==========
+
+import 'package:nabd/core/network/api_client.dart';
+import 'package:nabd/core/network/endpoints.dart';
+import 'package:nabd/features/auth/data/models/login_request_model.dart';
+import 'package:nabd/features/auth/data/models/login_response_model.dart';
+
+class AuthRemoteDatasource {
+  Future<LoginResponseModel> login(LoginRequestModel request) async {
+    final response = await ApiClient.post(
+      endpoint: AppEndpoints.login,
+      data: request.toJson(),
+    );
+    return LoginResponseModel.fromJson(response.data['data']);
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\data\models\login_request_model.dart ==========
+
+class LoginRequestModel {
+  final String username;
+  final String password;
+
+  LoginRequestModel({required this.username, required this.password});
+
+  Map<String, dynamic> toJson() {
+    return {'username': username, 'password': password};
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\data\models\login_response_model.dart ==========
+
+class LoginResponseModel {
+  final bool isAuthenticated;
+  final String email;
+  final String accessToken;
+  final String refreshToken;
+  final String userName;
+  final String fullNameArabic;
+  final String fullNameEnglish;
+  final String userType;
+
+  LoginResponseModel({
+    required this.isAuthenticated,
+    required this.email,
+    required this.accessToken,
+    required this.refreshToken,
+    required this.userName,
+    required this.fullNameArabic,
+    required this.fullNameEnglish,
+    required this.userType,
+  });
+
+  factory LoginResponseModel.fromJson(Map<String, dynamic> json) {
+    return LoginResponseModel(
+      isAuthenticated: json['isAuthenticated'] ?? false,
+      email: json['email'] ?? '',
+      accessToken: json['accessToken'] ?? '',
+      refreshToken: json['refreshToken'] ?? '',
+      userName: json['userName'] ?? '',
+      fullNameArabic: json['fullNameArabic'] ?? '',
+      fullNameEnglish: json['fullNameEnglish'] ?? '',
+      userType: json['userType'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'isAuthenticated': isAuthenticated,
+      'email': email,
+      'accessToken': accessToken,
+      'refreshToken': refreshToken,
+      'userName': userName,
+      'fullNameArabic': fullNameArabic,
+      'fullNameEnglish': fullNameEnglish,
+      'userType': userType,
+    };
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\data\repositories\auth_repository_impl.dart ==========
+
+import 'package:nabd/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:nabd/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:nabd/features/auth/data/models/login_request_model.dart';
+import 'package:nabd/features/auth/data/models/login_response_model.dart';
+import 'package:nabd/features/auth/domain/repositories/auth_repository.dart';
+
+class AuthRepositoryImpl implements AuthRepository {
+  final AuthRemoteDatasource remoteDatasource;
+  final AuthLocalDatasource localDatasource;
+
+  AuthRepositoryImpl({
+    required this.remoteDatasource,
+    required this.localDatasource,
+  });
+
+  @override
+  Future<LoginResponseModel> login({
+    required String username,
+    required String password,
+  }) async {
+    final request = LoginRequestModel(username: username, password: password);
+
+    final user = await remoteDatasource.login(request);
+    await localDatasource.saveUserData(user);
+    return user;
+  }
+
+  @override
+  bool isLoggedIn() {
+    return localDatasource.isLoggedIn();
+  }
+
+  @override
+  Future<void> logout() async {
+    await localDatasource.clearUserData();
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\domain\repositories\auth_repository.dart ==========
+
+import 'package:nabd/features/auth/data/models/login_response_model.dart';
+
+abstract class AuthRepository {
+  Future<LoginResponseModel> login({
+    required String username,
+    required String password,
+  });
+
+  bool isLoggedIn();
+
+  Future<void> logout();
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\presentation\bloc\auth_bloc.dart ==========
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nabd/core/errors/exceptions.dart';
+import 'package:nabd/features/auth/domain/repositories/auth_repository.dart';
+import 'package:nabd/features/auth/presentation/bloc/auth_state.dart';
+
+part 'auth_event.dart';
+
+class AuthBloc extends Bloc<AuthEvent, AuthState> {
+  final AuthRepository authRepository;
+
+  AuthBloc({required this.authRepository}) : super(AuthInitial()) {
+    on<LoginRequested>(_onLoginRequested);
+    on<LogoutRequested>(_onLogoutRequested);
+  }
+
+  Future<void> _onLoginRequested(
+    LoginRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    try {
+      final user = await authRepository.login(
+        username: event.username,
+        password: event.password,
+      );
+      emit(LoginSuccess(user: user));
+    } on UnauthorizedException {
+      emit(LoginFailure(message: 'Invalid username or password'));
+    } on NetworkException {
+      emit(LoginFailure(message: 'No internet connection'));
+    } on ServerException catch (e) {
+      emit(LoginFailure(message: e.message));
+    } catch (e) {
+      emit(LoginFailure(message: 'Something went wrong. Please try again'));
+    }
+  }
+
+  Future<void> _onLogoutRequested(
+    LogoutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    await authRepository.logout();
+    emit(LogoutSuccess());
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\presentation\bloc\auth_event.dart ==========
+
+part of 'auth_bloc.dart';
+
+abstract class AuthEvent {}
+
+class LoginRequested extends AuthEvent {
+  final String username;
+  final String password;
+
+  LoginRequested({required this.username, required this.password});
+}
+
+class LogoutRequested extends AuthEvent {}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\presentation\bloc\auth_state.dart ==========
+
+import 'package:nabd/features/auth/data/models/login_response_model.dart';
+
+abstract class AuthState {}
+
+class AuthInitial extends AuthState {}
+
+class AuthLoading extends AuthState {}
+
+class LoginSuccess extends AuthState {
+  final LoginResponseModel user;
+  LoginSuccess({required this.user});
+}
+
+class LoginFailure extends AuthState {
+  final String message;
+  LoginFailure({required this.message});
+}
+
+class LogoutSuccess extends AuthState {}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\auth\presentation\pages\login_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nabd/core/utils/navigation.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+import 'package:nabd/core/widgets/custom_button.dart';
+import 'package:nabd/core/widgets/custom_text_field.dart';
+import 'package:nabd/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:nabd/features/auth/presentation/bloc/auth_state.dart';
+import 'package:nabd/features/main_layout/presentation/pages/main_layout_screen.dart';
+import 'package:nabd/features/onboarding/presentation/pages/onboarding_screen.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is LoginSuccess) {
+          pushAndRemoveUntil(context, const MainLayoutScreen());
+        } else if (state is LoginFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.redColor,
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            onPressed: () =>
+                pushWithReplacement(context, const OnboardingScreen()),
+          ),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Welcome', style: AppTextStyles.heading2()),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please enter a form to login this app',
+                    style: AppTextStyles.bodyMedium(color: AppColors.greyColor),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Username Field
+                  CustomTextField(
+                    controller: _usernameController,
+                    label: 'Email or Username',
+                    hintText: 'Enter your full name',
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your username';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Password Field
+                  CustomTextField(
+                    controller: _passwordController,
+                    label: 'Password',
+                    hintText: 'Enter your password',
+                    obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: AppColors.greyColor,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        // TODO: navigate to forgot password
+                      },
+                      child: Text(
+                        'Forgot Password?',
+                        style: AppTextStyles.bodySmall(
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Login Button
+                  BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, state) {
+                      return CustomButton(
+                        text: 'Sign In',
+                        isLoading: state is AuthLoading,
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            context.read<AuthBloc>().add(
+                              LoginRequested(
+                                username: _usernameController.text.trim(),
+                                password: _passwordController.text,
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\home\presentation\pages\home_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/constants/app_assets.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+import 'package:nabd/core/utils/navigation.dart';
+import 'package:nabd/features/home/presentation/widgets/home_header.dart';
+import 'package:nabd/features/home/presentation/widgets/doctor_search_bar.dart';
+import 'package:nabd/features/home/presentation/widgets/upcoming_appointment_card.dart';
+import 'package:nabd/features/home/presentation/widgets/specializations_section.dart';
+import 'package:nabd/features/home/presentation/widgets/health_tip_banner.dart';
+import 'package:nabd/features/home/presentation/widgets/quick_actions_section.dart';
+import 'package:nabd/features/queue/presentation/pages/queue_status_screen.dart';
+import 'package:nabd/features/main_layout/presentation/pages/main_layout_screen.dart';
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  void _navigateToTab(BuildContext context, int tabIndex) {
+    final mainLayout = context.findAncestorStateOfType<MainLayoutScreenState>();
+    if (mainLayout != null) {
+      mainLayout.changeTab(tabIndex);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: 100,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              const HomeHeader(userName: 'Sara', userType: 'Patient'),
+              const SizedBox(height: 16),
+
+              // Search Bar
+              DoctorSearchBar(
+                onSearch: (query) {
+                  // TODO: search for doctor
+                },
+                onFilterTap: () {
+                  // TODO: show filter options
+                },
+              ),
+              const SizedBox(height: 24),
+
+              // Upcoming Appointments
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Upcoming Appointments',
+                    style: AppTextStyles.heading3(),
+                  ),
+                  TextButton(
+                    onPressed: () => _navigateToTab(context, 1),
+                    child: Text(
+                      'View All',
+                      style: AppTextStyles.bodySmall(
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              UpcomingAppointmentCard(
+                doctorName: 'Dr. Stone Gaze',
+                specialty: 'Ear, Nose & Throat specialist',
+                date: 'Wed, 10 Jan, 2025',
+                time: 'Morning set: 11:00',
+                imageUrl: '',
+                onTap: () {
+                  pushTo(context, const QueueStatusScreen());
+                },
+              ),
+              const SizedBox(height: 24),
+
+              // Quick Actions
+              QuickActionsSection(
+                items: [
+                  QuickActionItem(
+                    title: 'Book an Appointment',
+                    subtitle: 'Find & book doctors',
+                    image: AppAssets.bookappointment,
+                    onTap: () => _navigateToTab(context, 0),
+                  ),
+                  QuickActionItem(
+                    title: 'My Medical Records',
+                    subtitle: 'View your records',
+                    image: AppAssets.medicalrecords,
+                    onTap: () => _navigateToTab(context, 3),
+                  ),
+                  QuickActionItem(
+                    title: 'Lab & Radiology',
+                    subtitle: 'Check your results',
+                    image: AppAssets.labres,
+                    onTap: () => _navigateToTab(context, 3),
+                  ),
+                  QuickActionItem(
+                    title: 'AI Health Assistant',
+                    subtitle: 'Chat with AI',
+                    image: AppAssets.aipc,
+                    onTap: () {
+                      // TODO: navigate to AI chat
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Hospital Clinic
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Hospital Clinic', style: AppTextStyles.heading3()),
+                  TextButton(
+                    onPressed: () {
+                      // TODO: view all
+                    },
+                    child: Text(
+                      'View All',
+                      style: AppTextStyles.bodySmall(
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const SpecializationsSection(),
+              const SizedBox(height: 24),
+
+              // Health Tips
+              const HealthTipBanner(
+                title: 'Prevent the spread of COVID-19 Virus',
+                imageAsset: 'assets/images/nabdlogopng.png',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\home\presentation\widgets\doctor_search_bar.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class DoctorSearchBar extends StatelessWidget {
+  const DoctorSearchBar({super.key, this.onSearch, this.onFilterTap});
+
+  final void Function(String)? onSearch;
+  final VoidCallback? onFilterTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // Doctors Dropdown
+        GestureDetector(
+          onTap: onFilterTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Doctors',
+                  style: AppTextStyles.bodySmall(
+                    color: AppColors.whiteColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppColors.whiteColor,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Search Field
+        Expanded(
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.accentColor,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.borderColor),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onChanged: onSearch,
+                    decoration: InputDecoration(
+                      hintText: 'Search...',
+                      hintStyle: AppTextStyles.bodySmall(
+                        color: AppColors.greyColor,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                      ),
+                      isDense: true,
+                    ),
+                    style: AppTextStyles.bodySmall(),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: Icon(
+                    Icons.search,
+                    color: AppColors.greyColor,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\home\presentation\widgets\health_tip_banner.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class HealthTipBanner extends StatelessWidget {
+  const HealthTipBanner({
+    super.key,
+    required this.title,
+    required this.imageAsset,
+  });
+
+  final String title;
+  final String imageAsset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryColor,
+            AppColors.primaryColor.withValues(alpha: 0.8),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.bodyLarge(
+                    color: AppColors.whiteColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.whiteColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Learn More',
+                    style: AppTextStyles.caption(
+                      color: AppColors.primaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              imageAsset,
+              width: 80,
+              height: 80,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\home\presentation\widgets\home_header.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class HomeHeader extends StatelessWidget {
+  const HomeHeader({super.key, required this.userName, required this.userType});
+
+  final String userName;
+  final String userType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const CircleAvatar(
+          radius: 24,
+          backgroundColor: AppColors.accentColor,
+          child: Icon(Icons.person, color: AppColors.primaryColor, size: 28),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Hi $userName!',
+                    style: AppTextStyles.heading3(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      userType,
+                      style: AppTextStyles.caption(
+                        color: AppColors.whiteColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'May you always in a good condition',
+                style: AppTextStyles.caption(color: AppColors.greyColor),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            // TODO: notifications
+          },
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: AppColors.darkColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\home\presentation\widgets\quick_actions_section.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class QuickActionItem {
+  final String title;
+  final String subtitle;
+  final String image;
+  final VoidCallback onTap;
+
+  const QuickActionItem({
+    required this.title,
+    required this.subtitle,
+    required this.image,
+    required this.onTap,
+  });
+}
+
+class QuickActionsSection extends StatelessWidget {
+  const QuickActionsSection({super.key, required this.items});
+
+  final List<QuickActionItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 160,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return _buildCard(item);
+        },
+      ),
+    );
+  }
+
+  Widget _buildCard(QuickActionItem item) {
+    return GestureDetector(
+      onTap: item.onTap,
+      child: Container(
+        width: 150,
+        decoration: BoxDecoration(
+          color: AppColors.whiteColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.borderColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              child: Image.asset(
+                item.image,
+                width: 150,
+                height: 90,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 150,
+                    height: 90,
+                    color: AppColors.accentColor,
+                    child: const Icon(
+                      Icons.image_outlined,
+                      color: AppColors.greyColor,
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // Text
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: AppTextStyles.bodySmall(fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.subtitle,
+                    style: AppTextStyles.caption(color: AppColors.greyColor),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\home\presentation\widgets\specializations_section.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class SpecializationsSection extends StatelessWidget {
+  const SpecializationsSection({super.key});
+
+  static const List<Map<String, dynamic>> _specializations = [
+    {'name': 'Orthopedics', 'icon': Icons.accessibility_new},
+    {'name': 'Urology', 'icon': Icons.medical_services},
+    {'name': 'Oncology', 'icon': Icons.biotech},
+    {'name': 'Cardiology', 'icon': Icons.favorite},
+    {'name': 'Neurology', 'icon': Icons.psychology},
+    {'name': 'Dermatology', 'icon': Icons.face},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 100,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _specializations.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final item = _specializations[index];
+          return _buildSpecializationItem(
+            name: item['name'] as String,
+            icon: item['icon'] as IconData,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSpecializationItem({
+    required String name,
+    required IconData icon,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        // TODO: navigate to specialization
+      },
+      child: SizedBox(
+        width: 80,
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: AppColors.primaryColor, size: 28),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              style: AppTextStyles.caption(color: AppColors.darkColor),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\home\presentation\widgets\upcoming_appointment_card.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class UpcomingAppointmentCard extends StatelessWidget {
+  const UpcomingAppointmentCard({
+    super.key,
+    required this.doctorName,
+    required this.specialty,
+    required this.date,
+    required this.time,
+    required this.imageUrl,
+    this.onTap,
+  });
+
+  final String doctorName;
+  final String specialty;
+  final String date;
+  final String time;
+  final String imageUrl;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primaryColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryColor.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Doctor Info Row
+            Row(
+              children: [
+                // Doctor Avatar
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.whiteColor.withValues(alpha: 0.2),
+                  child: const Icon(
+                    Icons.person,
+                    color: AppColors.whiteColor,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Doctor Name & Specialty
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        doctorName,
+                        style: AppTextStyles.bodyLarge(
+                          color: AppColors.whiteColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        specialty,
+                        style: AppTextStyles.bodySmall(
+                          color: AppColors.whiteColor.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Arrow
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.whiteColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: AppColors.whiteColor,
+                    size: 16,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Date & Time Row
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.whiteColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    color: AppColors.whiteColor,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    date,
+                    style: AppTextStyles.bodySmall(color: AppColors.whiteColor),
+                  ),
+                  const Spacer(),
+                  const Icon(
+                    Icons.access_time,
+                    color: AppColors.whiteColor,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    time,
+                    style: AppTextStyles.bodySmall(color: AppColors.whiteColor),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\main_layout\presentation\pages\main_layout_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/features/appointments/presentation/pages/book_appointment_screen.dart';
+import 'package:nabd/features/appointments/presentation/pages/my_appointments_screen.dart';
+import 'package:nabd/features/home/presentation/pages/home_screen.dart';
+import 'package:nabd/features/medical_records/presentation/pages/medical_records_screen.dart';
+import 'package:nabd/features/profile/presentation/pages/patient_profile_screen.dart';
+import 'package:nabd/features/main_layout/presentation/widgets/app_bottom_nav_bar.dart';
+
+class MainLayoutScreen extends StatefulWidget {
+  const MainLayoutScreen({super.key});
+
+  @override
+  State<MainLayoutScreen> createState() => MainLayoutScreenState();
+}
+
+class MainLayoutScreenState extends State<MainLayoutScreen> {
+  int _currentIndex = 2;
+
+  final List<Widget> _screens = const [
+    BookAppointmentScreen(),
+    MyAppointmentsScreen(),
+    HomeScreen(),
+    MedicalRecordsScreen(),
+    PatientProfileScreen(),
+  ];
+
+  void changeTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBody: true,
+      body: IndexedStack(index: _currentIndex, children: _screens),
+      bottomNavigationBar: AppBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: changeTab,
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\main_layout\presentation\widgets\app_bottom_nav_bar.dart ==========
+
+import 'package:circle_nav_bar/circle_nav_bar.dart';
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+
+class AppBottomNavBar extends StatelessWidget {
+  const AppBottomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  final int currentIndex;
+  final void Function(int) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: CircleNavBar(
+        activeIndex: currentIndex,
+        onTap: onTap,
+        activeIcons: const [
+          Icon(Icons.calendar_month, color: AppColors.whiteColor),
+          Icon(Icons.event_note, color: AppColors.whiteColor),
+          Icon(Icons.home_rounded, color: AppColors.whiteColor),
+          Icon(Icons.folder, color: AppColors.whiteColor),
+          Icon(Icons.person, color: AppColors.whiteColor),
+        ],
+        inactiveIcons: const [
+          Icon(Icons.calendar_month_outlined, color: AppColors.greyColor),
+          Icon(Icons.event_note_outlined, color: AppColors.greyColor),
+          Icon(Icons.home_outlined, color: AppColors.greyColor),
+          Icon(Icons.folder_outlined, color: AppColors.greyColor),
+          Icon(Icons.person_outline, color: AppColors.greyColor),
+        ],
+        height: 70,
+        circleWidth: 50,
+        color: AppColors.whiteColor.withValues(alpha: 0.75),
+        circleColor: AppColors.primaryColor,
+        shadowColor: AppColors.primaryColor.withValues(alpha: 0.2),
+        elevation: 8,
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+        cornerRadius: const BorderRadius.all(Radius.circular(28)),
+        tabCurve: Curves.easeOutBack,
+        circleShadowColor: AppColors.primaryColor.withValues(alpha: 0.3),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\medical_records\presentation\pages\medical_records_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class MedicalRecordsScreen extends StatelessWidget {
+  const MedicalRecordsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Medical Records'),
+        automaticallyImplyLeading: false,
+      ),
+      body: Center(
+        child: Text('Medical Records', style: AppTextStyles.heading3()),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\onboarding\data\models\onboarding_model.dart ==========
+
+class OnboardingModel {
+  final String title;
+  final String description;
+  final String image;
+
+  const OnboardingModel({
+    required this.title,
+    required this.description,
+    required this.image,
+  });
+
+  static const List<OnboardingModel> items = [
+    OnboardingModel(
+      title: 'Welcome !',
+      description:
+          'This system allows you to book appointments, access medical records, and manage your healthcare services with ease. Let\'s get started!',
+      image: 'assets/images/on1.png',
+    ),
+    OnboardingModel(
+      title: 'Choose Specialization',
+      description: 'Pick the specialty that best matches your health needs.',
+      image: 'assets/images/on2.png',
+    ),
+    OnboardingModel(
+      title: 'Schedule Your First Appointment',
+      description:
+          'Choose a suitable time and date to meet your preferred doctor.',
+      image: 'assets/images/on3.png',
+    ),
+  ];
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\onboarding\presentation\pages\onboarding_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/utils/navigation.dart';
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+import 'package:nabd/core/widgets/custom_button.dart';
+import 'package:nabd/features/auth/presentation/pages/login_screen.dart';
+import 'package:nabd/features/onboarding/data/models/onboarding_model.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+
+class OnboardingScreen extends StatefulWidget {
+  const OnboardingScreen({super.key});
+
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final _pageController = PageController();
+  int _pageIndex = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _goToLogin() async {
+    await AppLocalStorage.cacheData(AppLocalStorage.onboardingSeen, true);
+    if (!mounted) return;
+    pushAndRemoveUntil(context, const LoginScreen());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ==================== Page View ====================
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (index) => setState(() => _pageIndex = index),
+                itemCount: OnboardingModel.items.length,
+                itemBuilder: (context, index) {
+                  final item = OnboardingModel.items[index];
+                  return Column(
+                    children: [
+                      // Image with gradient
+                      Expanded(
+                        flex: 3,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.asset(item.image, fit: BoxFit.cover),
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: Container(
+                                height: screenHeight * 0.15,
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: [
+                                      AppColors.whiteColor,
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Text content
+                      Expanded(
+                        flex: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.title,
+                                style: AppTextStyles.heading2(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                item.description,
+                                style: AppTextStyles.bodySmall(
+                                  color: AppColors.greyColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+            // ==================== Indicator ====================
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SmoothPageIndicator(
+                controller: _pageController,
+                count: OnboardingModel.items.length,
+                effect: const ExpandingDotsEffect(
+                  activeDotColor: AppColors.primaryColor,
+                  dotColor: AppColors.borderColor,
+                  dotHeight: 8,
+                  dotWidth: 8,
+                  expansionFactor: 3,
+                  spacing: 6,
+                ),
+              ),
+            ),
+
+            // ==================== Buttons ====================
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 32),
+              child: _pageIndex != OnboardingModel.items.length - 1
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: CustomButton(
+                            bgColor: AppColors.whiteColor,
+                            textColor: AppColors.darkColor,
+                            height: 48,
+                            onPressed: _goToLogin,
+                            text: 'Skip',
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: CustomButton(
+                            height: 48,
+                            onPressed: () => _pageController.nextPage(
+                              duration: const Duration(milliseconds: 400),
+                              curve: Curves.easeInOut,
+                            ),
+                            text: 'Next',
+                          ),
+                        ),
+                      ],
+                    )
+                  : CustomButton(
+                      height: 48,
+                      onPressed: _goToLogin,
+                      text: 'Get Started !',
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\profile\data\datasources\profile_local_datasource.dart ==========
+
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/core/storage/hive_service.dart';
+import 'package:nabd/core/constants/storage_keys.dart';
+import 'package:nabd/features/profile/data/models/patient_profile_model.dart';
+
+class ProfileLocalDatasource {
+  // Save profile in Hive
+  Future<void> saveProfile(PatientProfileModel profile) async {
+    await HiveService.put(
+      boxName: HiveService.userBox,
+      key: 'patient_profile',
+      value: profile.toJson(),
+    );
+    // Save fileNumber in SharedPrefs للوصول السريع
+    await AppLocalStorage.cacheData(StorageKeys.fileNumber, profile.fileNumber);
+  }
+
+  // Get cached profile
+  PatientProfileModel? getCachedProfile() {
+    final data = HiveService.get(
+      boxName: HiveService.userBox,
+      key: 'patient_profile',
+    );
+    if (data != null) {
+      return PatientProfileModel.fromJson(Map<String, dynamic>.from(data));
+    }
+    return null;
+  }
+
+  // Get fileNumber directly
+  String? getFileNumber() {
+    return AppLocalStorage.getData(StorageKeys.fileNumber);
+  }
+
+  // Clear profile
+  Future<void> clearProfile() async {
+    await HiveService.delete(
+      boxName: HiveService.userBox,
+      key: 'patient_profile',
+    );
+    await AppLocalStorage.removeData(StorageKeys.fileNumber);
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\profile\data\datasources\profile_remote_datasource.dart ==========
+
+import 'package:nabd/core/network/api_client.dart';
+import 'package:nabd/core/network/endpoints.dart';
+import 'package:nabd/features/profile/data/models/patient_profile_model.dart';
+
+class ProfileRemoteDatasource {
+  Future<PatientProfileModel> getPatientProfile() async {
+    final response = await ApiClient.get(endpoint: AppEndpoints.patientProfile);
+    return PatientProfileModel.fromJson(response.data['data']);
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\profile\data\models\patient_profile_model.dart ==========
+
+class PatientProfileModel {
+  final int id;
+  final String fullNameEnglish;
+  final String fullNameArabic;
+  final String userName;
+  final String fileNumber;
+  final String gender;
+  final String nationalId;
+  final String email;
+  final String? address;
+  final String? city;
+  final String? country;
+  final String? phoneNumber;
+  final String? dateOfBirth;
+  final String? bloodType;
+  final String? insuranceType;
+  final String? currentMedications;
+
+  const PatientProfileModel({
+    required this.id,
+    required this.fullNameEnglish,
+    required this.fullNameArabic,
+    required this.userName,
+    required this.fileNumber,
+    required this.gender,
+    required this.nationalId,
+    required this.email,
+    this.address,
+    this.city,
+    this.country,
+    this.phoneNumber,
+    this.dateOfBirth,
+    this.bloodType,
+    this.insuranceType,
+    this.currentMedications,
+  });
+
+  factory PatientProfileModel.fromJson(Map<String, dynamic> json) {
+    return PatientProfileModel(
+      id: json['id'] ?? 0,
+      fullNameEnglish: json['fullNameEnglish'] ?? '',
+      fullNameArabic: json['fullNameArabic'] ?? '',
+      userName: json['userName'] ?? '',
+      fileNumber: json['fileNumber'] ?? '',
+      gender: json['gender'] ?? '',
+      nationalId: json['nationalId'] ?? '',
+      email: json['email'] ?? '',
+      address: json['address'],
+      city: json['city'],
+      country: json['country'],
+      phoneNumber: json['phoneNumber'],
+      dateOfBirth: json['dateOfBirth'],
+      bloodType: json['bloodType'],
+      insuranceType: json['insuranceType'],
+      currentMedications: json['currentMedications'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'fullNameEnglish': fullNameEnglish,
+      'fullNameArabic': fullNameArabic,
+      'userName': userName,
+      'fileNumber': fileNumber,
+      'gender': gender,
+      'nationalId': nationalId,
+      'email': email,
+      'address': address,
+      'city': city,
+      'country': country,
+      'phoneNumber': phoneNumber,
+      'dateOfBirth': dateOfBirth,
+      'bloodType': bloodType,
+      'insuranceType': insuranceType,
+      'currentMedications': currentMedications,
+    };
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\profile\data\repositories\profile_repository_impl.dart ==========
+
+import 'package:nabd/core/errors/exceptions.dart';
+import 'package:nabd/features/profile/data/datasources/profile_local_datasource.dart';
+import 'package:nabd/features/profile/data/datasources/profile_remote_datasource.dart';
+import 'package:nabd/features/profile/data/models/patient_profile_model.dart';
+import 'package:nabd/features/profile/domain/repositories/profile_repository.dart';
+
+class ProfileRepositoryImpl implements ProfileRepository {
+  final ProfileRemoteDatasource remoteDatasource;
+  final ProfileLocalDatasource localDatasource;
+
+  ProfileRepositoryImpl({
+    required this.remoteDatasource,
+    required this.localDatasource,
+  });
+
+  @override
+  Future<PatientProfileModel> getProfile() async {
+    try {
+      final profile = await remoteDatasource.getPatientProfile();
+      // Save locally
+      await localDatasource.saveProfile(profile);
+      return profile;
+    } on ServerException {
+      // لو فشل الـ API، نرجع الـ cached data
+      final cached = localDatasource.getCachedProfile();
+      if (cached != null) return cached;
+      rethrow;
+    } catch (e) {
+      final cached = localDatasource.getCachedProfile();
+      if (cached != null) return cached;
+      throw ServerException(message: 'Failed to load profile');
+    }
+  }
+
+  @override
+  PatientProfileModel? getCachedProfile() {
+    return localDatasource.getCachedProfile();
+  }
+
+  @override
+  String? getFileNumber() {
+    return localDatasource.getFileNumber();
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\profile\domain\repositories\profile_repository.dart ==========
+
+import 'package:nabd/features/profile/data/models/patient_profile_model.dart';
+
+abstract class ProfileRepository {
+  Future<PatientProfileModel> getProfile();
+  PatientProfileModel? getCachedProfile();
+  String? getFileNumber();
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\profile\presentation\pages\patient_profile_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class PatientProfileScreen extends StatelessWidget {
+  const PatientProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+        automaticallyImplyLeading: false,
+      ),
+      body: Center(
+        child: Text('Patient Profile', style: AppTextStyles.heading3()),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\queue\presentation\pages\queue_status_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/theme/app_colors.dart';
+import 'package:nabd/core/theme/app_text_styles.dart';
+
+class QueueStatusScreen extends StatelessWidget {
+  const QueueStatusScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Queue Status')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Doctor Info
+            const CircleAvatar(
+              radius: 40,
+              backgroundColor: AppColors.accentColor,
+              child: Icon(
+                Icons.person,
+                color: AppColors.primaryColor,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Dr. Stone Gaze',
+              style: AppTextStyles.heading3(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Ear, Nose & Throat specialist',
+              style: AppTextStyles.bodySmall(color: AppColors.greyColor),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'WAITING',
+                style: AppTextStyles.caption(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+
+            // Queue Number
+            Text(
+              'Your Number',
+              style: AppTextStyles.bodyMedium(color: AppColors.greyColor),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Center(
+                child: Text(
+                  '12',
+                  style: AppTextStyles.heading1(
+                    color: AppColors.whiteColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Estimated Time
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildInfoBox('09', 'Current'),
+                const SizedBox(width: 16),
+                _buildInfoBox('25', 'Est. Minutes'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoBox(String value, String label) {
+    return Container(
+      width: 80,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.accentColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: AppTextStyles.heading2(
+              color: AppColors.primaryColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: AppTextStyles.caption()),
+        ],
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\features\splash\presentation\pages\splash_screen.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/core/constants/app_assets.dart';
+import 'package:nabd/core/utils/navigation.dart';
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/features/auth/presentation/pages/login_screen.dart';
+import 'package:nabd/features/main_layout/presentation/pages/main_layout_screen.dart';
+import 'package:nabd/features/onboarding/presentation/pages/onboarding_screen.dart';
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      String? token = AppLocalStorage.getData(AppLocalStorage.token);
+      bool? seen = AppLocalStorage.getData(AppLocalStorage.onboardingSeen);
+
+      if (token != null) {
+        pushWithReplacement(context, const MainLayoutScreen());
+      } else if (seen == true) {
+        pushWithReplacement(context, const LoginScreen());
+      } else {
+        pushWithReplacement(context, const OnboardingScreen());
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Image.asset(AppAssets.logoPng, width: 166, height: 179),
+      ),
+    );
+  }
+}
+
+
+========== E:\gradution project\NABD\nabd\lib\main.dart ==========
+
+import 'package:flutter/material.dart';
+import 'package:nabd/app/app.dart';
+import 'package:nabd/core/storage/app_local_storage.dart';
+import 'package:nabd/core/storage/hive_service.dart';
+import 'package:nabd/core/network/api_client.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppLocalStorage.init();
+  await HiveService.init();
+  ApiClient.init();
+  runApp(const App());
+}

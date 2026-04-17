@@ -7,4 +7,5 @@ class StorageKeys {
   static const String onboardingSeen = 'onboardingSeen';
   static const String userId = 'userId';
   static const String userName = 'userName';
+  static const String fileNumber = 'fileNumber';
 }
