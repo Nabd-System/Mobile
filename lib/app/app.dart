@@ -5,6 +5,9 @@ import 'package:nabd/features/auth/data/datasources/auth_remote_datasource.dart'
 import 'package:nabd/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:nabd/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:nabd/features/appointments/data/datasources/appointments_remote_datasource.dart';
+import 'package:nabd/features/appointments/data/repositories/appointments_repository_impl.dart';
+import 'package:nabd/features/appointments/presentation/bloc/book_appointment_bloc.dart';
 import 'package:nabd/features/splash/presentation/pages/splash_screen.dart';
 
 class App extends StatelessWidget {
@@ -21,6 +24,13 @@ class App extends StatelessWidget {
               localDatasource: AuthLocalDatasource(),
             ),
           ),
+        ),
+        BlocProvider(
+          create: (_) => BookAppointmentBloc(
+            repository: AppointmentsRepositoryImpl(
+              remoteDatasource: AppointmentsRemoteDatasource(),
+            ),
+          )..add(LoadClinicsRequested()),
         ),
       ],
       child: MaterialApp(
