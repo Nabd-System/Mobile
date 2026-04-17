@@ -11,4 +11,11 @@ class AuthRemoteDatasource {
     );
     return LoginResponseModel.fromJson(response.data['data']);
   }
+
+  Future<void> logout(String refreshToken) async {
+    await ApiClient.post(
+      endpoint: AppEndpoints.logout,
+      queryParameters: {'RefreshToken': refreshToken},
+    );
+  }
 }
