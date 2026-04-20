@@ -12,4 +12,5 @@ class AppAssets {
   static const String medicalrecords = 'assets/images/medicalrecords.png';
   static const String labres = 'assets/images/labres.png';
   static const String aipc = 'assets/images/aipc.png';
+  static const String aibot = 'assets/images/aibot.png';
 }

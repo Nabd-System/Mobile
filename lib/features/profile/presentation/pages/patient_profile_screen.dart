@@ -99,6 +99,7 @@ class _ProfilePageState extends State<PatientProfileScreen> {
   }
 
   // ==================== Main Content ====================
+  // ==================== Main Content ====================
   Widget _buildContent(BuildContext context, PatientProfileModel profile) {
     return RefreshIndicator(
       color: AppColors.primaryColor,
@@ -107,7 +108,12 @@ class _ProfilePageState extends State<PatientProfileScreen> {
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: 100, // ← padding من تحت عشان الـ nav bar
+        ),
         child: Column(
           children: [
             const SizedBox(height: 8),
@@ -178,7 +184,7 @@ class _ProfilePageState extends State<PatientProfileScreen> {
                 );
               },
             ),
-            const SizedBox(height: 24),
+            
           ],
         ),
       ),
