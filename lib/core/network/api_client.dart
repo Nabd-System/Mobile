@@ -6,6 +6,8 @@ import 'package:nabd/core/network/endpoints.dart';
 class ApiClient {
   static late Dio _dio;
 
+  static Dio get dio => _dio;
+
   static void init() {
     _dio = Dio(
       BaseOptions(
