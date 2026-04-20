@@ -5,8 +5,19 @@ import 'package:nabd/core/theme/app_text_styles.dart';
 import 'package:nabd/features/appointments/presentation/bloc/my_appointments_bloc.dart';
 import 'package:nabd/features/appointments/presentation/widgets/appointment_card.dart';
 
-class MyAppointmentsScreen extends StatelessWidget {
+class MyAppointmentsScreen extends StatefulWidget {
   const MyAppointmentsScreen({super.key});
+
+  @override
+  State<MyAppointmentsScreen> createState() => _MyAppointmentsScreenState();
+}
+
+class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<MyAppointmentsBloc>().add(LoadMyAppointments());
+  }
 
   @override
   Widget build(BuildContext context) {

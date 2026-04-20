@@ -52,7 +52,7 @@ class BookAppointmentState {
       selectedDate != null &&
       selectedTimeSlot != null;
 
-  // ✅ موجودة
+  
   List<TimeSlotModel> get filteredTimeSlots =>
       timeSlots.where((slot) => slot.period == selectedPeriod).toList();
 

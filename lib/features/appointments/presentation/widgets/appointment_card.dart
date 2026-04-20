@@ -23,7 +23,7 @@ class AppointmentCard extends StatelessWidget {
         border: Border.all(color: AppColors.borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -34,10 +34,9 @@ class AppointmentCard extends StatelessWidget {
           // Doctor Info Row
           Row(
             children: [
-              // Avatar
               CircleAvatar(
                 radius: 24,
-                backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
+                backgroundColor: AppColors.primaryColor.withOpacity(0.1),
                 child: const Icon(
                   Icons.person,
                   color: AppColors.primaryColor,
@@ -45,8 +44,6 @@ class AppointmentCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Doctor Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,8 +64,6 @@ class AppointmentCard extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Status Badge
               _buildStatusBadge(),
             ],
           ),
@@ -109,11 +104,9 @@ class AppointmentCard extends StatelessWidget {
             ],
           ),
 
-          // Actions (فقط للـ Upcoming)
-          // Actions (فقط للـ Upcoming)
-          if (appointment.isScheduled) ...[
+          // Cancel Button - فقط لو onCancelTap موجود
+          if (onCancelTap != null) ...[
             const SizedBox(height: 12),
-            // Cancel فقط
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
@@ -145,15 +138,15 @@ class AppointmentCard extends StatelessWidget {
     String label;
 
     if (appointment.isScheduled) {
-      bgColor = AppColors.primaryColor.withValues(alpha: 0.1);
+      bgColor = AppColors.primaryColor.withOpacity(0.1);
       textColor = AppColors.primaryColor;
       label = 'Scheduled';
     } else if (appointment.isCompleted) {
-      bgColor = Colors.green.withValues(alpha: 0.1);
+      bgColor = Colors.green.withOpacity(0.1);
       textColor = Colors.green;
       label = 'Completed';
     } else {
-      bgColor = AppColors.redColor.withValues(alpha: 0.1);
+      bgColor = AppColors.redColor.withOpacity(0.1);
       textColor = AppColors.redColor;
       label = 'Cancelled';
     }

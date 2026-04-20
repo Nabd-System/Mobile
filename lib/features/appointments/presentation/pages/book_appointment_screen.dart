@@ -29,6 +29,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    context.read<BookAppointmentBloc>().add(LoadClinicsRequested());
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(

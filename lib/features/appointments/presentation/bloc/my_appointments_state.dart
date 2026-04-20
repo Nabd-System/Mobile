@@ -15,14 +15,51 @@ class MyAppointmentsState {
     this.successMessage,
   });
 
-  // Upcoming = Scheduled
-  List<AppointmentModel> get upcomingAppointments =>
-      appointments.where((a) => a.isScheduled).toList();
+  // ==================== Date Helpers ====================
 
-  // Past = Completed or Cancelled
-  List<AppointmentModel> get pastAppointments =>
-      appointments.where((a) => a.isCompleted || a.isCancelled).toList();
+  /// اليوم بدون وقت
+  DateTime get _todayOnly {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
 
+  /// تحويل string لـ DateTime (التاريخ فقط)
+  DateTime? _parseAppointmentDate(String value) {
+    try {
+      final date = DateTime.parse(value);
+      return DateTime(date.year, date.month, date.day);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ==================== Upcoming ====================
+  /// اليوم أو المستقبل + مش cancelled + مش completed
+  List<AppointmentModel> get upcomingAppointments {
+    final today = _todayOnly;
+    return appointments.where((a) {
+      final appointmentDate = _parseAppointmentDate(a.appointmentDate);
+      if (appointmentDate == null) return false;
+      return !appointmentDate.isBefore(today) &&
+          !a.isCancelled &&
+          !a.isCompleted;
+    }).toList();
+  }
+
+  // ==================== Past ====================
+  /// تاريخ قديم أو cancelled أو completed
+  List<AppointmentModel> get pastAppointments {
+    final today = _todayOnly;
+    return appointments.where((a) {
+      final appointmentDate = _parseAppointmentDate(a.appointmentDate);
+      if (appointmentDate == null) {
+        return a.isCancelled || a.isCompleted;
+      }
+      return appointmentDate.isBefore(today) || a.isCancelled || a.isCompleted;
+    }).toList();
+  }
+
+  // ==================== Copy With ====================
   MyAppointmentsState copyWith({
     List<AppointmentModel>? appointments,
     bool? isLoading,
