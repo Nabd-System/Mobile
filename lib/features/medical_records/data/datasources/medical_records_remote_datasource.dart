@@ -14,6 +14,9 @@ import 'package:nabd/features/medical_records/data/models/medical_history_model.
 import 'package:nabd/features/medical_records/data/models/medical_history_details_model.dart';
 import 'package:nabd/features/medical_records/data/models/prescription_model.dart';
 import 'package:nabd/features/medical_records/data/models/prescription_details_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_result_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_result_details_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_analysis_model.dart';
 import 'package:dio/dio.dart';
 import 'package:nabd/core/constants/storage_keys.dart';
 import 'package:nabd/core/storage/app_local_storage.dart';
@@ -42,6 +45,12 @@ abstract class MedicalRecordsRemoteDataSource {
   Future<List<PrescriptionModel>> getPrescriptions();
   Future<PrescriptionDetailsModel> getPrescriptionDetails(int id);
   Future<String> exportPrescription(int prescriptionId);
+
+  // Lab Results
+  Future<List<LabResultModel>> getLabResults();
+  Future<LabResultDetailsModel> getLabResultDetails(int id);
+  Future<LabAnalysisModel> getLabAnalysis(int id);
+  Future<String> exportLabResult(int labResultId);
 }
 
 class MedicalRecordsRemoteDataSourceImpl
@@ -252,6 +261,71 @@ class MedicalRecordsRemoteDataSourceImpl
 
     await Dio().download(
       '${AppEndpoints.baseUrl}${AppEndpoints.prescriptionExport}/$prescriptionId/export',
+      filePath,
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+
+    return filePath;
+  }
+
+  // ==================== Lab Results ====================
+
+  @override
+  Future<List<LabResultModel>> getLabResults() async {
+    final response = await ApiClient.get(endpoint: AppEndpoints.labResults);
+
+    if (response.data['isSuccess'] == true) {
+      final List<dynamic> list = response.data['data'] ?? [];
+      return list.map((item) => LabResultModel.fromJson(item)).toList();
+    } else {
+      throw ServerException(
+        message: response.data['message'] ?? 'Failed to load lab results',
+      );
+    }
+  }
+
+  @override
+  Future<LabResultDetailsModel> getLabResultDetails(int id) async {
+    final response = await ApiClient.get(
+      endpoint: AppEndpoints.labResultDetails,
+      queryParameters: {'id': id},
+    );
+
+    if (response.data['isSuccess'] == true) {
+      return LabResultDetailsModel.fromJson(response.data['data']);
+    } else {
+      throw ServerException(
+        message:
+            response.data['message'] ?? 'Failed to load lab result details',
+      );
+    }
+  }
+
+  @override
+  Future<LabAnalysisModel> getLabAnalysis(int id) async {
+    final response = await ApiClient.get(
+      endpoint: AppEndpoints.labAnalysis,
+      queryParameters: {'id': id},
+    );
+
+    if (response.data['isSuccess'] == true) {
+      return LabAnalysisModel.fromJson(response.data['data']);
+    } else {
+      throw ServerException(
+        message: response.data['message'] ?? 'Failed to load analysis',
+      );
+    }
+  }
+
+  @override
+  Future<String> exportLabResult(int labResultId) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final filePath = '${dir.path}/lab_result_$labResultId.pdf';
+
+    final token = AppLocalStorage.getData(StorageKeys.token);
+
+    await Dio().download(
+      '${AppEndpoints.baseUrl}${AppEndpoints.labExportPdf}/$labResultId/exportLabPDF',
       filePath,
       options: Options(headers: {'Authorization': 'Bearer $token'}),
     );

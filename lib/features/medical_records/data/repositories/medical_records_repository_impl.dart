@@ -13,6 +13,9 @@ import 'package:nabd/features/medical_records/data/models/medical_history_model.
 import 'package:nabd/features/medical_records/data/models/medical_history_details_model.dart';
 import 'package:nabd/features/medical_records/data/models/prescription_model.dart';
 import 'package:nabd/features/medical_records/data/models/prescription_details_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_result_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_result_details_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_analysis_model.dart';
 import 'package:nabd/features/medical_records/domain/repositories/medical_records_repository.dart';
 
 class MedicalRecordsRepositoryImpl implements MedicalRecordsRepository {
@@ -208,6 +211,66 @@ class MedicalRecordsRepositoryImpl implements MedicalRecordsRepository {
       return Left(NetworkFailure(message: e.message));
     } catch (e) {
       return Left(ServerFailure(message: 'Failed to download prescription'));
+    }
+  }
+
+  // ==================== Lab Results ====================
+
+  @override
+  Future<Either<Failure, List<LabResultModel>>> getLabResults() async {
+    try {
+      final result = await remoteDataSource.getLabResults();
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: 'An unexpected error occurred'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, LabResultDetailsModel>> getLabResultDetails(
+    int id,
+  ) async {
+    try {
+      final result = await remoteDataSource.getLabResultDetails(id);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: 'An unexpected error occurred'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, LabAnalysisModel>> getLabAnalysis(int id) async {
+    try {
+      final result = await remoteDataSource.getLabAnalysis(id);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: 'An unexpected error occurred'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> exportLabResult(int labResultId) async {
+    try {
+      final filePath = await remoteDataSource.exportLabResult(labResultId);
+      return Right(filePath);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: 'Failed to download lab result'));
     }
   }
 }

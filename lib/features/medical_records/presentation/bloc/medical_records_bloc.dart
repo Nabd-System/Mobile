@@ -22,6 +22,10 @@ class MedicalRecordsBloc
     on<GetPrescriptionsEvent>(_onGetPrescriptions);
     on<GetPrescriptionDetailsEvent>(_onGetPrescriptionDetails);
     on<ExportPrescriptionEvent>(_onExportPrescription);
+    on<GetLabResultsEvent>(_onGetLabResults);
+    on<GetLabResultDetailsEvent>(_onGetLabResultDetails);
+    on<GetLabAnalysisEvent>(_onGetLabAnalysis);
+    on<ExportLabResultEvent>(_onExportLabResult);
     on<ResetMedicalRecordsEvent>(_onReset);
   }
 
@@ -310,6 +314,96 @@ class MedicalRecordsBloc
         state.copyWith(
           exportStatus: RequestStatus.success,
           exportFilePath: filePath,
+        ),
+      ),
+    );
+  }
+
+  // ==================== Lab Results ====================
+
+  Future<void> _onGetLabResults(
+    GetLabResultsEvent event,
+    Emitter<MedicalRecordsState> emit,
+  ) async {
+    emit(state.copyWith(labResultsStatus: RequestStatus.loading));
+    final result = await repository.getLabResults();
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          labResultsStatus: RequestStatus.error,
+          labResultsError: failure.message,
+        ),
+      ),
+      (labResults) => emit(
+        state.copyWith(
+          labResultsStatus: RequestStatus.success,
+          labResults: labResults,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onGetLabResultDetails(
+    GetLabResultDetailsEvent event,
+    Emitter<MedicalRecordsState> emit,
+  ) async {
+    emit(state.copyWith(labResultDetailsStatus: RequestStatus.loading));
+    final result = await repository.getLabResultDetails(event.id);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          labResultDetailsStatus: RequestStatus.error,
+          labResultDetailsError: failure.message,
+        ),
+      ),
+      (details) => emit(
+        state.copyWith(
+          labResultDetailsStatus: RequestStatus.success,
+          labResultDetails: details,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onGetLabAnalysis(
+    GetLabAnalysisEvent event,
+    Emitter<MedicalRecordsState> emit,
+  ) async {
+    emit(state.copyWith(labAnalysisStatus: RequestStatus.loading));
+    final result = await repository.getLabAnalysis(event.id);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          labAnalysisStatus: RequestStatus.error,
+          labAnalysisError: failure.message,
+        ),
+      ),
+      (analysis) => emit(
+        state.copyWith(
+          labAnalysisStatus: RequestStatus.success,
+          labAnalysis: analysis,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onExportLabResult(
+    ExportLabResultEvent event,
+    Emitter<MedicalRecordsState> emit,
+  ) async {
+    emit(state.copyWith(exportLabStatus: RequestStatus.loading));
+    final result = await repository.exportLabResult(event.labResultId);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          exportLabStatus: RequestStatus.error,
+          exportLabError: failure.message,
+        ),
+      ),
+      (filePath) => emit(
+        state.copyWith(
+          exportLabStatus: RequestStatus.success,
+          exportLabFilePath: filePath,
         ),
       ),
     );

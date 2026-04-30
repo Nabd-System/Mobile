@@ -74,6 +74,25 @@ class ExportPrescriptionEvent extends MedicalRecordsEvent {
   ExportPrescriptionEvent({required this.prescriptionId});
 }
 
+// ==================== Lab Results Events ====================
+
+class GetLabResultsEvent extends MedicalRecordsEvent {}
+
+class GetLabResultDetailsEvent extends MedicalRecordsEvent {
+  final int id;
+  GetLabResultDetailsEvent({required this.id});
+}
+
+class GetLabAnalysisEvent extends MedicalRecordsEvent {
+  final int id;
+  GetLabAnalysisEvent({required this.id});
+}
+
+class ExportLabResultEvent extends MedicalRecordsEvent {
+  final int labResultId;
+  ExportLabResultEvent({required this.labResultId});
+}
+
 // ==================== Reset Event ====================
 
 class ResetMedicalRecordsEvent extends MedicalRecordsEvent {}

@@ -8,6 +8,9 @@ import 'package:nabd/features/medical_records/data/models/medical_history_model.
 import 'package:nabd/features/medical_records/data/models/medical_history_details_model.dart';
 import 'package:nabd/features/medical_records/data/models/prescription_model.dart';
 import 'package:nabd/features/medical_records/data/models/prescription_details_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_result_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_result_details_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_analysis_model.dart';
 
 enum RequestStatus { initial, loading, success, error, loadingMore }
 
@@ -71,6 +74,26 @@ class MedicalRecordsState {
   final String exportFilePath;
   final String exportError;
 
+  // ==================== Lab Results ====================
+  final RequestStatus labResultsStatus;
+  final List<LabResultModel> labResults;
+  final String labResultsError;
+
+  // ==================== Lab Result Details ====================
+  final RequestStatus labResultDetailsStatus;
+  final LabResultDetailsModel? labResultDetails;
+  final String labResultDetailsError;
+
+  // ==================== Lab Analysis ====================
+  final RequestStatus labAnalysisStatus;
+  final LabAnalysisModel? labAnalysis;
+  final String labAnalysisError;
+
+  // ==================== Export Lab Result ====================
+  final RequestStatus exportLabStatus;
+  final String exportLabFilePath;
+  final String exportLabError;
+
   const MedicalRecordsState({
     this.visitsStatus = RequestStatus.initial,
     this.visits = const [],
@@ -109,6 +132,18 @@ class MedicalRecordsState {
     this.exportStatus = RequestStatus.initial,
     this.exportFilePath = '',
     this.exportError = '',
+    this.labResultsStatus = RequestStatus.initial,
+    this.labResults = const [],
+    this.labResultsError = '',
+    this.labResultDetailsStatus = RequestStatus.initial,
+    this.labResultDetails,
+    this.labResultDetailsError = '',
+    this.labAnalysisStatus = RequestStatus.initial,
+    this.labAnalysis,
+    this.labAnalysisError = '',
+    this.exportLabStatus = RequestStatus.initial,
+    this.exportLabFilePath = '',
+    this.exportLabError = '',
   });
 
   MedicalRecordsState copyWith({
@@ -149,6 +184,18 @@ class MedicalRecordsState {
     RequestStatus? exportStatus,
     String? exportFilePath,
     String? exportError,
+    RequestStatus? labResultsStatus,
+    List<LabResultModel>? labResults,
+    String? labResultsError,
+    RequestStatus? labResultDetailsStatus,
+    LabResultDetailsModel? labResultDetails,
+    String? labResultDetailsError,
+    RequestStatus? labAnalysisStatus,
+    LabAnalysisModel? labAnalysis,
+    String? labAnalysisError,
+    RequestStatus? exportLabStatus,
+    String? exportLabFilePath,
+    String? exportLabError,
   }) {
     return MedicalRecordsState(
       visitsStatus: visitsStatus ?? this.visitsStatus,
@@ -167,27 +214,50 @@ class MedicalRecordsState {
       allergyDetailsStatus: allergyDetailsStatus ?? this.allergyDetailsStatus,
       allergyDetails: allergyDetails ?? this.allergyDetails,
       allergyDetailsError: allergyDetailsError ?? this.allergyDetailsError,
-      chronicDiseasesStatus: chronicDiseasesStatus ?? this.chronicDiseasesStatus,
+      chronicDiseasesStatus:
+          chronicDiseasesStatus ?? this.chronicDiseasesStatus,
       chronicDiseases: chronicDiseases ?? this.chronicDiseases,
       chronicDiseasesError: chronicDiseasesError ?? this.chronicDiseasesError,
-      chronicDiseaseDetailsStatus: chronicDiseaseDetailsStatus ?? this.chronicDiseaseDetailsStatus,
-      chronicDiseaseDetails: chronicDiseaseDetails ?? this.chronicDiseaseDetails,
-      chronicDiseaseDetailsError: chronicDiseaseDetailsError ?? this.chronicDiseaseDetailsError,
+      chronicDiseaseDetailsStatus:
+          chronicDiseaseDetailsStatus ?? this.chronicDiseaseDetailsStatus,
+      chronicDiseaseDetails:
+          chronicDiseaseDetails ?? this.chronicDiseaseDetails,
+      chronicDiseaseDetailsError:
+          chronicDiseaseDetailsError ?? this.chronicDiseaseDetailsError,
       medicalHistoryStatus: medicalHistoryStatus ?? this.medicalHistoryStatus,
       medicalHistory: medicalHistory ?? this.medicalHistory,
       medicalHistoryError: medicalHistoryError ?? this.medicalHistoryError,
-      medicalHistoryDetailsStatus: medicalHistoryDetailsStatus ?? this.medicalHistoryDetailsStatus,
-      medicalHistoryDetails: medicalHistoryDetails ?? this.medicalHistoryDetails,
-      medicalHistoryDetailsError: medicalHistoryDetailsError ?? this.medicalHistoryDetailsError,
+      medicalHistoryDetailsStatus:
+          medicalHistoryDetailsStatus ?? this.medicalHistoryDetailsStatus,
+      medicalHistoryDetails:
+          medicalHistoryDetails ?? this.medicalHistoryDetails,
+      medicalHistoryDetailsError:
+          medicalHistoryDetailsError ?? this.medicalHistoryDetailsError,
       prescriptionsStatus: prescriptionsStatus ?? this.prescriptionsStatus,
       prescriptions: prescriptions ?? this.prescriptions,
       prescriptionsError: prescriptionsError ?? this.prescriptionsError,
-      prescriptionDetailsStatus: prescriptionDetailsStatus ?? this.prescriptionDetailsStatus,
+      prescriptionDetailsStatus:
+          prescriptionDetailsStatus ?? this.prescriptionDetailsStatus,
       prescriptionDetails: prescriptionDetails ?? this.prescriptionDetails,
-      prescriptionDetailsError: prescriptionDetailsError ?? this.prescriptionDetailsError,
+      prescriptionDetailsError:
+          prescriptionDetailsError ?? this.prescriptionDetailsError,
       exportStatus: exportStatus ?? this.exportStatus,
       exportFilePath: exportFilePath ?? this.exportFilePath,
       exportError: exportError ?? this.exportError,
+      labResultsStatus: labResultsStatus ?? this.labResultsStatus,
+      labResults: labResults ?? this.labResults,
+      labResultsError: labResultsError ?? this.labResultsError,
+      labResultDetailsStatus:
+          labResultDetailsStatus ?? this.labResultDetailsStatus,
+      labResultDetails: labResultDetails ?? this.labResultDetails,
+      labResultDetailsError:
+          labResultDetailsError ?? this.labResultDetailsError,
+      labAnalysisStatus: labAnalysisStatus ?? this.labAnalysisStatus,
+      labAnalysis: labAnalysis ?? this.labAnalysis,
+      labAnalysisError: labAnalysisError ?? this.labAnalysisError,
+      exportLabStatus: exportLabStatus ?? this.exportLabStatus,
+      exportLabFilePath: exportLabFilePath ?? this.exportLabFilePath,
+      exportLabError: exportLabError ?? this.exportLabError,
     );
   }
 }

@@ -11,6 +11,9 @@ import 'package:nabd/features/medical_records/data/models/medical_history_model.
 import 'package:nabd/features/medical_records/data/models/medical_history_details_model.dart';
 import 'package:nabd/features/medical_records/data/models/prescription_model.dart';
 import 'package:nabd/features/medical_records/data/models/prescription_details_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_result_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_result_details_model.dart';
+import 'package:nabd/features/medical_records/data/models/lab_analysis_model.dart';
 
 abstract class MedicalRecordsRepository {
   // Visits
@@ -31,14 +34,26 @@ abstract class MedicalRecordsRepository {
 
   // Chronic Diseases
   Future<Either<Failure, List<ChronicDiseaseModel>>> getChronicDiseases();
-  Future<Either<Failure, ChronicDiseaseDetailsModel>> getChronicDiseaseDetails(int id);
+  Future<Either<Failure, ChronicDiseaseDetailsModel>> getChronicDiseaseDetails(
+    int id,
+  );
 
   // Medical History
   Future<Either<Failure, List<MedicalHistoryModel>>> getMedicalHistory();
-  Future<Either<Failure, MedicalHistoryDetailsModel>> getMedicalHistoryDetails(int id);
+  Future<Either<Failure, MedicalHistoryDetailsModel>> getMedicalHistoryDetails(
+    int id,
+  );
 
   // Prescriptions
   Future<Either<Failure, List<PrescriptionModel>>> getPrescriptions();
-  Future<Either<Failure, PrescriptionDetailsModel>> getPrescriptionDetails(int id);
+  Future<Either<Failure, PrescriptionDetailsModel>> getPrescriptionDetails(
+    int id,
+  );
   Future<Either<Failure, String>> exportPrescription(int prescriptionId);
+
+  // Lab Results
+  Future<Either<Failure, List<LabResultModel>>> getLabResults();
+  Future<Either<Failure, LabResultDetailsModel>> getLabResultDetails(int id);
+  Future<Either<Failure, LabAnalysisModel>> getLabAnalysis(int id);
+  Future<Either<Failure, String>> exportLabResult(int labResultId);
 }

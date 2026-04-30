@@ -9,6 +9,7 @@ import 'package:nabd/features/medical_records/presentation/widgets/medical_histo
 import 'package:nabd/features/medical_records/presentation/widgets/visits_tab.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/empty_records_widget.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/prescriptions_tab.dart';
+import 'package:nabd/features/medical_records/presentation/widgets/lab_results_tab.dart';
 
 class MedicalRecordsScreen extends StatefulWidget {
   const MedicalRecordsScreen({super.key});
@@ -64,12 +65,8 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen>
                 // 1. Visits ✅
                 const VisitsTab(),
 
-                // 2. Lab Results (Mock)
-                const EmptyRecordsWidget(
-                  title: 'Lab Results',
-                  subtitle: 'Coming Soon - Lab results will appear here',
-                  icon: Icons.science_outlined,
-                ),
+                // 2. Lab Results ✅
+                const LabResultsTab(),
 
                 // 3. Radiology (Mock)
                 const EmptyRecordsWidget(
@@ -78,16 +75,16 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen>
                   icon: Icons.radio_button_checked,
                 ),
 
-                // 4. Prescriptions (Placeholder)
+                // 4. Prescriptions ✅
                 const PrescriptionsTab(),
 
-                // 5. Medical History (Placeholder)
+                // 5. Medical History ✅
                 const MedicalHistoryTab(),
 
-                // 6. Allergies (Placeholder)
+                // 6. Allergies ✅
                 const AllergiesTab(),
 
-                // 7. Chronic Diseases (Placeholder)
+                // 7. Chronic Diseases ✅
                 const ChronicDiseasesTab(),
               ],
             ),

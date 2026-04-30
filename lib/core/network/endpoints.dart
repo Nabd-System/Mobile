@@ -21,23 +21,27 @@ class AppEndpoints {
 
   // ==================== Appointment ====================
   static const String bookAppointment = 'Appointment/Book';
+
   // ==================== AI ====================
   static const String aiChat = 'Ai/chat';
+
   // ==================== Medical Records ====================
   static const String visitHistory = 'MedicalRecorde/VisitHistory';
-  static const String visitDetails = 'MedicalRecorde/Visit'; // /{visitId}
+  static const String visitDetails = 'MedicalRecorde/Visit';
   static const String allergies = 'MedicalRecorde/Allergies';
-  static const String allergyDetails = 'MedicalRecorde/Allergies'; // /{id}
+  static const String allergyDetails = 'MedicalRecorde/Allergies';
   static const String prescriptions = 'MedicalRecorde/Prescriptions';
-  static const String prescriptionDetails =
-      'MedicalRecorde/Prescriptions'; // /{prescriptionId}
-  static const String prescriptionExport =
-      'MedicalRecorde'; // /{prescriptionId}/export
+  static const String prescriptionDetails = 'MedicalRecorde/Prescriptions';
+  static const String prescriptionExport = 'MedicalRecorde';
   static const String chronicDiseases = 'MedicalRecorde/ChronicDiseases';
-  static const String chronicDiseaseDetails =
-      'MedicalRecorde/ChronicDiseases'; // /{chronicId}
+  static const String chronicDiseaseDetails = 'MedicalRecorde/ChronicDiseases';
   static const String medicalHistory = 'MedicalRecorde/MedicalHistory';
-  static const String medicalHistoryDetails =
-      'MedicalRecorde/MedicalHistory'; // /{id}
+  static const String medicalHistoryDetails = 'MedicalRecorde/MedicalHistory';
   static const String vitalSignsHistory = 'MedicalRecorde/VitalSignsHistory';
+
+  // ==================== Lab Results ====================
+  static const String labResults = 'Lab/GetResults';
+  static const String labResultDetails = 'Lab/GetResultDetails';
+  static const String labAnalysis = 'Lab/GetAnalysis';
+  static const String labExportPdf = 'Lab';
 }
