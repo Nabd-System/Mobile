@@ -60,7 +60,7 @@ class _PrescriptionsTabState extends State<PrescriptionsTab> {
           return const EmptyRecordsWidget(
             title: 'No Prescriptions',
             subtitle: 'Your prescriptions will appear here',
-            icon: Icons.medication_outlined,
+            icon: Icons.medication_outlined, message: '',
           );
         }
 

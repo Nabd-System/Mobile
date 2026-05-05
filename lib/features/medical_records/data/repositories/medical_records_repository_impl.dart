@@ -16,6 +16,8 @@ import 'package:nabd/features/medical_records/data/models/prescription_details_m
 import 'package:nabd/features/medical_records/data/models/lab_result_model.dart';
 import 'package:nabd/features/medical_records/data/models/lab_result_details_model.dart';
 import 'package:nabd/features/medical_records/data/models/lab_analysis_model.dart';
+import 'package:nabd/features/medical_records/data/models/radiology_model.dart';
+import 'package:nabd/features/medical_records/data/models/radiology_details_model.dart';
 import 'package:nabd/features/medical_records/domain/repositories/medical_records_repository.dart';
 
 class MedicalRecordsRepositoryImpl implements MedicalRecordsRepository {
@@ -271,6 +273,54 @@ class MedicalRecordsRepositoryImpl implements MedicalRecordsRepository {
       return Left(NetworkFailure(message: e.message));
     } catch (e) {
       return Left(ServerFailure(message: 'Failed to download lab result'));
+    }
+  }
+
+  // ==================== Radiology ====================
+
+  @override
+  Future<Either<Failure, List<RadiologyModel>>> getRadiology() async {
+    try {
+      final result = await remoteDataSource.getRadiology();
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: 'An unexpected error occurred'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, RadiologyDetailsModel>> getRadiologyDetails(
+    int id,
+  ) async {
+    try {
+      final result = await remoteDataSource.getRadiologyDetails(id);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: 'An unexpected error occurred'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> exportRadiology(int id) async {
+    try {
+      final filePath = await remoteDataSource.exportRadiology(id);
+      return Right(filePath);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(message: e.message));
+    } catch (e) {
+      return Left(
+        ServerFailure(message: 'Failed to download radiology report'),
+      );
     }
   }
 }

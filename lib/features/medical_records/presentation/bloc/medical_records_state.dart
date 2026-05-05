@@ -11,6 +11,8 @@ import 'package:nabd/features/medical_records/data/models/prescription_details_m
 import 'package:nabd/features/medical_records/data/models/lab_result_model.dart';
 import 'package:nabd/features/medical_records/data/models/lab_result_details_model.dart';
 import 'package:nabd/features/medical_records/data/models/lab_analysis_model.dart';
+import 'package:nabd/features/medical_records/data/models/radiology_model.dart';
+import 'package:nabd/features/medical_records/data/models/radiology_details_model.dart';
 
 enum RequestStatus { initial, loading, success, error, loadingMore }
 
@@ -94,6 +96,21 @@ class MedicalRecordsState {
   final String exportLabFilePath;
   final String exportLabError;
 
+  // ==================== Radiology ==================== ← جديد
+  final RequestStatus radiologyStatus;
+  final List<RadiologyModel> radiology;
+  final String radiologyError;
+
+  // ==================== Radiology Details ====================
+  final RequestStatus radiologyDetailsStatus;
+  final RadiologyDetailsModel? radiologyDetails;
+  final String radiologyDetailsError;
+
+  // ==================== Export Radiology ====================
+  final RequestStatus exportRadiologyStatus;
+  final String exportRadiologyFilePath;
+  final String exportRadiologyError;
+
   const MedicalRecordsState({
     this.visitsStatus = RequestStatus.initial,
     this.visits = const [],
@@ -144,6 +161,16 @@ class MedicalRecordsState {
     this.exportLabStatus = RequestStatus.initial,
     this.exportLabFilePath = '',
     this.exportLabError = '',
+    // Radiology
+    this.radiologyStatus = RequestStatus.initial,
+    this.radiology = const [],
+    this.radiologyError = '',
+    this.radiologyDetailsStatus = RequestStatus.initial,
+    this.radiologyDetails,
+    this.radiologyDetailsError = '',
+    this.exportRadiologyStatus = RequestStatus.initial,
+    this.exportRadiologyFilePath = '',
+    this.exportRadiologyError = '',
   });
 
   MedicalRecordsState copyWith({
@@ -196,6 +223,16 @@ class MedicalRecordsState {
     RequestStatus? exportLabStatus,
     String? exportLabFilePath,
     String? exportLabError,
+    // Radiology
+    RequestStatus? radiologyStatus,
+    List<RadiologyModel>? radiology,
+    String? radiologyError,
+    RequestStatus? radiologyDetailsStatus,
+    RadiologyDetailsModel? radiologyDetails,
+    String? radiologyDetailsError,
+    RequestStatus? exportRadiologyStatus,
+    String? exportRadiologyFilePath,
+    String? exportRadiologyError,
   }) {
     return MedicalRecordsState(
       visitsStatus: visitsStatus ?? this.visitsStatus,
@@ -258,6 +295,20 @@ class MedicalRecordsState {
       exportLabStatus: exportLabStatus ?? this.exportLabStatus,
       exportLabFilePath: exportLabFilePath ?? this.exportLabFilePath,
       exportLabError: exportLabError ?? this.exportLabError,
+      // Radiology
+      radiologyStatus: radiologyStatus ?? this.radiologyStatus,
+      radiology: radiology ?? this.radiology,
+      radiologyError: radiologyError ?? this.radiologyError,
+      radiologyDetailsStatus:
+          radiologyDetailsStatus ?? this.radiologyDetailsStatus,
+      radiologyDetails: radiologyDetails ?? this.radiologyDetails,
+      radiologyDetailsError:
+          radiologyDetailsError ?? this.radiologyDetailsError,
+      exportRadiologyStatus:
+          exportRadiologyStatus ?? this.exportRadiologyStatus,
+      exportRadiologyFilePath:
+          exportRadiologyFilePath ?? this.exportRadiologyFilePath,
+      exportRadiologyError: exportRadiologyError ?? this.exportRadiologyError,
     );
   }
 }

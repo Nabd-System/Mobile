@@ -4,4 +4,9 @@ abstract class ProfileRepository {
   Future<PatientProfileModel> getProfile();
   PatientProfileModel? getCachedProfile();
   String? getFileNumber();
+
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  });
 }

@@ -26,6 +26,9 @@ class MedicalRecordsBloc
     on<GetLabResultDetailsEvent>(_onGetLabResultDetails);
     on<GetLabAnalysisEvent>(_onGetLabAnalysis);
     on<ExportLabResultEvent>(_onExportLabResult);
+    on<GetRadiologyEvent>(_onGetRadiology);
+    on<GetRadiologyDetailsEvent>(_onGetRadiologyDetails);
+    on<ExportRadiologyEvent>(_onExportRadiology);
     on<ResetMedicalRecordsEvent>(_onReset);
   }
 
@@ -404,6 +407,74 @@ class MedicalRecordsBloc
         state.copyWith(
           exportLabStatus: RequestStatus.success,
           exportLabFilePath: filePath,
+        ),
+      ),
+    );
+  }
+
+  // ==================== Radiology ====================
+
+  Future<void> _onGetRadiology(
+    GetRadiologyEvent event,
+    Emitter<MedicalRecordsState> emit,
+  ) async {
+    emit(state.copyWith(radiologyStatus: RequestStatus.loading));
+    final result = await repository.getRadiology();
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          radiologyStatus: RequestStatus.error,
+          radiologyError: failure.message,
+        ),
+      ),
+      (radiology) => emit(
+        state.copyWith(
+          radiologyStatus: RequestStatus.success,
+          radiology: radiology,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onGetRadiologyDetails(
+    GetRadiologyDetailsEvent event,
+    Emitter<MedicalRecordsState> emit,
+  ) async {
+    emit(state.copyWith(radiologyDetailsStatus: RequestStatus.loading));
+    final result = await repository.getRadiologyDetails(event.id);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          radiologyDetailsStatus: RequestStatus.error,
+          radiologyDetailsError: failure.message,
+        ),
+      ),
+      (details) => emit(
+        state.copyWith(
+          radiologyDetailsStatus: RequestStatus.success,
+          radiologyDetails: details,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onExportRadiology(
+    ExportRadiologyEvent event,
+    Emitter<MedicalRecordsState> emit,
+  ) async {
+    emit(state.copyWith(exportRadiologyStatus: RequestStatus.loading));
+    final result = await repository.exportRadiology(event.id);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          exportRadiologyStatus: RequestStatus.error,
+          exportRadiologyError: failure.message,
+        ),
+      ),
+      (filePath) => emit(
+        state.copyWith(
+          exportRadiologyStatus: RequestStatus.success,
+          exportRadiologyFilePath: filePath,
         ),
       ),
     );

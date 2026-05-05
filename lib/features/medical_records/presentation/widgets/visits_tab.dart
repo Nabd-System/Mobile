@@ -91,7 +91,7 @@ class _VisitsTabState extends State<VisitsTab> {
           return const EmptyRecordsWidget(
             title: 'No Visits Found',
             subtitle: 'Your visit history will appear here',
-            icon: Icons.event_note_outlined,
+            icon: Icons.event_note_outlined, message: '',
           );
         }
 

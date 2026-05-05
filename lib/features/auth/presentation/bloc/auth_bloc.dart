@@ -11,8 +11,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({required this.authRepository}) : super(AuthInitial()) {
     on<LoginRequested>(_onLoginRequested);
     on<LogoutRequested>(_onLogoutRequested);
+    on<ForgotPasswordRequested>(_onForgotPasswordRequested);
+    on<ResetPasswordRequested>(_onResetPasswordRequested);
   }
 
+  // ==================== Login ====================
   Future<void> _onLoginRequested(
     LoginRequested event,
     Emitter<AuthState> emit,
@@ -36,6 +39,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  // ==================== Logout ====================
   Future<void> _onLogoutRequested(
     LogoutRequested event,
     Emitter<AuthState> emit,
@@ -43,5 +47,54 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(LogoutLoading());
     await authRepository.logout();
     emit(LogoutSuccess());
+  }
+
+  // ==================== Forgot Password ====================
+  Future<void> _onForgotPasswordRequested(
+    ForgotPasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(ForgotPasswordLoading());
+
+    try {
+      await authRepository.forgotPassword(email: event.email);
+      emit(ForgotPasswordSuccess(message: 'Email was sent successfully'));
+    } on NetworkException {
+      emit(ForgotPasswordFailure(message: 'No internet connection'));
+    } on ServerException catch (e) {
+      emit(ForgotPasswordFailure(message: e.message));
+    } catch (e) {
+      emit(
+        ForgotPasswordFailure(
+          message: 'Something went wrong. Please try again',
+        ),
+      );
+    }
+  }
+
+  // ==================== Reset Password ====================
+  Future<void> _onResetPasswordRequested(
+    ResetPasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(ResetPasswordLoading());
+
+    try {
+      await authRepository.resetPassword(
+        email: event.email,
+        otp: event.otp,
+        newPassword: event.newPassword,
+        confirmPassword: event.confirmPassword,
+      );
+      emit(ResetPasswordSuccess());
+    } on NetworkException {
+      emit(ResetPasswordFailure(message: 'No internet connection'));
+    } on ServerException catch (e) {
+      emit(ResetPasswordFailure(message: e.message));
+    } catch (e) {
+      emit(
+        ResetPasswordFailure(message: 'Something went wrong. Please try again'),
+      );
+    }
   }
 }

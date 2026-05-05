@@ -7,6 +7,9 @@ class AppEndpoints {
   static const String login = 'Account/login';
   static const String logout = 'Account/logout';
   static const String refreshToken = 'Account/refresh-token';
+  static const String forgetPassword = 'Account/forget-password';
+  static const String resetPassword = 'Account/reset-password';
+  static const String changePassword = 'Account/ChangePasswrod';
 
   // ==================== Patient ====================
   static const String clinics = 'Patient/Clinics';
@@ -21,6 +24,7 @@ class AppEndpoints {
 
   // ==================== Appointment ====================
   static const String bookAppointment = 'Appointment/Book';
+  static const String deleteAppointment = 'Appointment';
 
   // ==================== AI ====================
   static const String aiChat = 'Ai/chat';
@@ -44,4 +48,8 @@ class AppEndpoints {
   static const String labResultDetails = 'Lab/GetResultDetails';
   static const String labAnalysis = 'Lab/GetAnalysis';
   static const String labExportPdf = 'Lab';
+  // ==================== Radiology ====================
+  static const String radiology = 'MedicalRecorde/Radiology';
+  static const String radiologyDetails = 'MedicalRecorde/Radiology';
+  static const String radiologyExport = 'MedicalRecorde/Radiology/Export';
 }

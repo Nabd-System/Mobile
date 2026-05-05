@@ -91,7 +91,7 @@ class _AllergiesTabState extends State<AllergiesTab> {
           return const EmptyRecordsWidget(
             title: 'No Allergies Found',
             subtitle: 'Your allergy records will appear here',
-            icon: Icons.warning_amber_outlined,
+            icon: Icons.warning_amber_outlined, message: '',
           );
         }
 

@@ -60,7 +60,7 @@ class _LabResultsTabState extends State<LabResultsTab> {
           return const EmptyRecordsWidget(
             title: 'No Lab Results',
             subtitle: 'Your lab results will appear here',
-            icon: Icons.science_outlined,
+            icon: Icons.science_outlined, message: '',
           );
         }
 

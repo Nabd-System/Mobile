@@ -59,7 +59,12 @@ class AppointmentsRemoteDatasource {
 
   // ==================== Cancel Appointment ====================
   Future<void> cancelAppointment(int appointmentId) async {
-    // TODO: استبدل بـ endpoint لما تجهز
-    await Future.delayed(const Duration(milliseconds: 500));
+    final response = await ApiClient.delete(
+      endpoint: '${AppEndpoints.deleteAppointment}/$appointmentId',
+    );
+
+    if (response.data['isSuccess'] == false) {
+      throw Exception(response.data['message'] ?? 'Something went wrong');
+    }
   }
 }

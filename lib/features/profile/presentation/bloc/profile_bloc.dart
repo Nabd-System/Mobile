@@ -12,13 +12,14 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ProfileBloc({required this.profileRepository}) : super(ProfileInitial()) {
     on<GetProfileEvent>(_onGetProfile);
     on<RefreshProfileEvent>(_onRefreshProfile);
+    on<ChangePasswordEvent>(_onChangePassword);
   }
 
+  // ==================== Get Profile ====================
   Future<void> _onGetProfile(
     GetProfileEvent event,
     Emitter<ProfileState> emit,
   ) async {
-    // أول حاجة عرض الـ cached data لو موجودة
     final cached = profileRepository.getCachedProfile();
     if (cached != null) {
       emit(ProfileLoaded(profile: cached));
@@ -30,7 +31,6 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final profile = await profileRepository.getProfile();
       emit(ProfileLoaded(profile: profile));
     } on NetworkException {
-      // لو عندنا cached → نفضل بيها وما نبينش error
       if (cached == null) {
         emit(ProfileError(message: 'No internet connection'));
       }
@@ -45,6 +45,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     }
   }
 
+  // ==================== Refresh Profile ====================
   Future<void> _onRefreshProfile(
     RefreshProfileEvent event,
     Emitter<ProfileState> emit,
@@ -59,6 +60,31 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       emit(ProfileError(message: e.message));
     } catch (_) {
       emit(ProfileError(message: 'Failed to load profile'));
+    }
+  }
+
+  // ==================== Change Password ====================
+  Future<void> _onChangePassword(
+    ChangePasswordEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    emit(ChangePasswordLoading());
+    try {
+      await profileRepository.changePassword(
+        oldPassword: event.oldPassword,
+        newPassword: event.newPassword,
+      );
+      emit(ChangePasswordSuccess());
+    } on NetworkException {
+      emit(ChangePasswordFailure(message: 'No internet connection'));
+    } on ServerException catch (e) {
+      emit(ChangePasswordFailure(message: e.message));
+    } catch (_) {
+      emit(
+        ChangePasswordFailure(
+          message: 'Something went wrong. Please try again',
+        ),
+      );
     }
   }
 }

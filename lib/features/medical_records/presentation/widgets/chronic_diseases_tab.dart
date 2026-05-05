@@ -60,7 +60,7 @@ class _ChronicDiseasesTabState extends State<ChronicDiseasesTab> {
           return const EmptyRecordsWidget(
             title: 'No Chronic Diseases',
             subtitle: 'Your chronic disease records will appear here',
-            icon: Icons.monitor_heart_outlined,
+            icon: Icons.monitor_heart_outlined, message: '',
           );
         }
 

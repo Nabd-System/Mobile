@@ -17,11 +17,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<PatientProfileModel> getProfile() async {
     try {
       final profile = await remoteDatasource.getPatientProfile();
-      // Save locally
       await localDatasource.saveProfile(profile);
       return profile;
     } on ServerException {
-      // لو فشل الـ API، نرجع الـ cached data
       final cached = localDatasource.getCachedProfile();
       if (cached != null) return cached;
       rethrow;
@@ -40,5 +38,16 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   String? getFileNumber() {
     return localDatasource.getFileNumber();
+  }
+
+  @override
+  Future<void> changePassword({        
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    await remoteDatasource.changePassword(
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+    );
   }
 }

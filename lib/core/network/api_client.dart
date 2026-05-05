@@ -12,9 +12,9 @@ class ApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppEndpoints.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-        sendTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 30),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -70,6 +70,25 @@ class ApiClient {
   }) async {
     try {
       return await _dio.put(
+        endpoint,
+        data: data,
+        queryParameters: queryParameters,
+        options: Options(headers: headers),
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // ==================== PATCH ====================
+  static Future<Response> patch({
+    required String endpoint,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+  }) async {
+    try {
+      return await _dio.patch(
         endpoint,
         data: data,
         queryParameters: queryParameters,

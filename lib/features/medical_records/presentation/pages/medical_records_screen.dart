@@ -6,6 +6,7 @@ import 'package:nabd/features/medical_records/presentation/bloc/medical_records_
 import 'package:nabd/features/medical_records/presentation/widgets/allergies_tab.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/chronic_diseases_tab.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/medical_history_tab.dart';
+import 'package:nabd/features/medical_records/presentation/widgets/radiology_tab.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/visits_tab.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/empty_records_widget.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/prescriptions_tab.dart';
@@ -69,11 +70,7 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen>
                 const LabResultsTab(),
 
                 // 3. Radiology (Mock)
-                const EmptyRecordsWidget(
-                  title: 'Radiology',
-                  subtitle: 'Coming Soon - Radiology reports will appear here',
-                  icon: Icons.radio_button_checked,
-                ),
+                const RadiologyTab(),
 
                 // 4. Prescriptions ✅
                 const PrescriptionsTab(),

@@ -9,6 +9,7 @@ import 'package:nabd/features/auth/presentation/bloc/auth_state.dart';
 import 'package:nabd/features/auth/presentation/pages/login_screen.dart';
 import 'package:nabd/features/profile/data/models/patient_profile_model.dart';
 import 'package:nabd/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:nabd/features/profile/presentation/pages/change_password_screen.dart';
 
 class PatientProfileScreen extends StatefulWidget {
   const PatientProfileScreen({super.key});
@@ -45,6 +46,10 @@ class _ProfilePageState extends State<PatientProfileScreen> {
           ],
         ),
         body: BlocBuilder<ProfileBloc, ProfileState>(
+          buildWhen: (prev, curr) =>
+              curr is ProfileLoading ||
+              curr is ProfileLoaded ||
+              curr is ProfileError,
           builder: (context, state) {
             if (state is ProfileLoading) {
               return const Center(
@@ -172,6 +177,10 @@ class _ProfilePageState extends State<PatientProfileScreen> {
               ],
             ),
             const SizedBox(height: 32),
+            // ── Settings Card ──
+            _buildSettingsCard(context),
+
+            const SizedBox(height: 32),
 
             // ── Logout Button ──
             BlocBuilder<AuthBloc, AuthState>(
@@ -184,7 +193,6 @@ class _ProfilePageState extends State<PatientProfileScreen> {
                 );
               },
             ),
-            
           ],
         ),
       ),
@@ -315,6 +323,90 @@ class _ProfilePageState extends State<PatientProfileScreen> {
           color: AppColors.primaryColor,
           fontWeight: FontWeight.w700,
         ),
+      ),
+    );
+  }
+
+  // ==================== Settings Card ====================
+  Widget _buildSettingsCard(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.whiteColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Card Title
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Text(
+              'SETTINGS',
+              style: AppTextStyles.caption(
+                color: AppColors.greyColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.borderColor),
+
+          // Change Password Row
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+              );
+            },
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(12),
+              bottomRight: Radius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.lock_outline_rounded,
+                      color: AppColors.primaryColor,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Change Password',
+                      style: AppTextStyles.bodySmall(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: AppColors.greyColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

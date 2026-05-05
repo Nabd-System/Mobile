@@ -31,18 +31,33 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    // جيب الـ refresh token قبل ما نمسحه
     final refreshToken =
         AppLocalStorage.getData(StorageKeys.refreshToken) as String? ?? '';
-
     try {
-      // حاول تنادي الـ API
       await remoteDatasource.logout(refreshToken);
     } catch (_) {
-      // لو API فشل → نكمل ونمسح locally
     } finally {
-      // دايمًا امسح local data
       await localDatasource.clearUserData();
     }
+  }
+
+  @override
+  Future<void> forgotPassword({required String email}) async {
+    await remoteDatasource.forgotPassword(email: email);
+  }
+
+  @override
+  Future<void> resetPassword({                                  
+    required String email,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    await remoteDatasource.resetPassword(
+      email: email,
+      otp: otp,
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
   }
 }

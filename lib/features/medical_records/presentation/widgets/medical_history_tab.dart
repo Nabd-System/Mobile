@@ -60,7 +60,7 @@ class _MedicalHistoryTabState extends State<MedicalHistoryTab> {
           return const EmptyRecordsWidget(
             title: 'No Medical History',
             subtitle: 'Your medical history will appear here',
-            icon: Icons.history,
+            icon: Icons.history, message: '',
           );
         }
 

@@ -17,6 +17,8 @@ import 'package:nabd/features/medical_records/data/models/prescription_details_m
 import 'package:nabd/features/medical_records/data/models/lab_result_model.dart';
 import 'package:nabd/features/medical_records/data/models/lab_result_details_model.dart';
 import 'package:nabd/features/medical_records/data/models/lab_analysis_model.dart';
+import 'package:nabd/features/medical_records/data/models/radiology_model.dart';
+import 'package:nabd/features/medical_records/data/models/radiology_details_model.dart';
 import 'package:dio/dio.dart';
 import 'package:nabd/core/constants/storage_keys.dart';
 import 'package:nabd/core/storage/app_local_storage.dart';
@@ -46,11 +48,15 @@ abstract class MedicalRecordsRemoteDataSource {
   Future<PrescriptionDetailsModel> getPrescriptionDetails(int id);
   Future<String> exportPrescription(int prescriptionId);
 
-  // Lab Results
   Future<List<LabResultModel>> getLabResults();
   Future<LabResultDetailsModel> getLabResultDetails(int id);
   Future<LabAnalysisModel> getLabAnalysis(int id);
   Future<String> exportLabResult(int labResultId);
+
+  // ==================== Radiology ==================== ← جديد
+  Future<List<RadiologyModel>> getRadiology();
+  Future<RadiologyDetailsModel> getRadiologyDetails(int id);
+  Future<String> exportRadiology(int id);
 }
 
 class MedicalRecordsRemoteDataSourceImpl
@@ -326,6 +332,53 @@ class MedicalRecordsRemoteDataSourceImpl
 
     await Dio().download(
       '${AppEndpoints.baseUrl}${AppEndpoints.labExportPdf}/$labResultId/exportLabPDF',
+      filePath,
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+
+    return filePath;
+  }
+
+  // ==================== Radiology ====================
+
+  @override
+  Future<List<RadiologyModel>> getRadiology() async {
+    final response = await ApiClient.get(endpoint: AppEndpoints.radiology);
+
+    if (response.data['isSuccess'] == true) {
+      final List<dynamic> list = response.data['data'] ?? [];
+      return list.map((item) => RadiologyModel.fromJson(item)).toList();
+    } else {
+      throw ServerException(
+        message: response.data['message'] ?? 'Failed to load radiology',
+      );
+    }
+  }
+
+  @override
+  Future<RadiologyDetailsModel> getRadiologyDetails(int id) async {
+    final response = await ApiClient.get(
+      endpoint: '${AppEndpoints.radiologyDetails}/$id',
+    );
+
+    if (response.data['isSuccess'] == true) {
+      return RadiologyDetailsModel.fromJson(response.data['data']);
+    } else {
+      throw ServerException(
+        message: response.data['message'] ?? 'Failed to load radiology details',
+      );
+    }
+  }
+
+  @override
+  Future<String> exportRadiology(int id) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final filePath = '${dir.path}/radiology_$id.pdf';
+
+    final token = AppLocalStorage.getData(StorageKeys.token);
+
+    await Dio().download(
+      '${AppEndpoints.baseUrl}${AppEndpoints.radiologyExport}/$id',
       filePath,
       options: Options(headers: {'Authorization': 'Bearer $token'}),
     );

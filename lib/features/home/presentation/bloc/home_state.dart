@@ -34,13 +34,17 @@ class HomeState {
     bool? isLoadingAppointment,
     bool? hasNoUpcoming,
     bool clearError = false,
+    bool clearUpcomingAppointment = false, // ✅ جديد
   }) {
     return HomeState(
       searchResults: searchResults ?? this.searchResults,
       isSearching: isSearching ?? this.isSearching,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       searchTerm: searchTerm ?? this.searchTerm,
-      upcomingAppointment: upcomingAppointment ?? this.upcomingAppointment,
+      // ✅ الفيكس: لو clearUpcomingAppointment = true → نمسح القديم
+      upcomingAppointment: clearUpcomingAppointment
+          ? null
+          : upcomingAppointment ?? this.upcomingAppointment,
       isLoadingAppointment: isLoadingAppointment ?? this.isLoadingAppointment,
       hasNoUpcoming: hasNoUpcoming ?? this.hasNoUpcoming,
     );

@@ -10,3 +10,8 @@ class SearchDoctorsEvent extends HomeEvent {
 class ClearSearchEvent extends HomeEvent {}
 
 class GetUpcomingAppointmentEvent extends HomeEvent {}
+
+class SetUpcomingAppointmentEvent extends HomeEvent { 
+  final AppointmentModel? appointment;
+  SetUpcomingAppointmentEvent({this.appointment});
+}

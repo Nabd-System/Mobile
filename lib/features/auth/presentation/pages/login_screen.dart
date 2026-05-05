@@ -7,6 +7,7 @@ import 'package:nabd/core/widgets/custom_button.dart';
 import 'package:nabd/core/widgets/custom_text_field.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:nabd/features/auth/presentation/bloc/auth_state.dart';
+import 'package:nabd/features/auth/presentation/pages/forgot_password_screen.dart';
 import 'package:nabd/features/main_layout/presentation/pages/main_layout_screen.dart';
 import 'package:nabd/features/onboarding/presentation/pages/onboarding_screen.dart';
 
@@ -110,11 +111,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
 
                   // Forgot Password
+                  // Forgot Password
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        // TODO: navigate to forgot password
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordScreen(),
+                          ),
+                        );
                       },
                       child: Text(
                         'Forgot Password?',

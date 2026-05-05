@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nabd/core/theme/app_colors.dart';
 import 'package:nabd/core/theme/app_text_styles.dart';
+import 'package:nabd/features/appointments/data/models/appointment_model.dart';
 import 'package:nabd/features/appointments/presentation/bloc/my_appointments_bloc.dart';
 import 'package:nabd/features/appointments/presentation/widgets/appointment_card.dart';
+import 'package:nabd/features/home/presentation/bloc/home_bloc.dart';
 
 class MyAppointmentsScreen extends StatefulWidget {
   const MyAppointmentsScreen({super.key});
@@ -17,6 +19,30 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   void initState() {
     super.initState();
     context.read<MyAppointmentsBloc>().add(LoadMyAppointments());
+  }
+
+  // ✅ بيجيب أول upcoming appointment صح
+  void _syncHomeCard(List<AppointmentModel> appointments) {
+    final upcoming = appointments.where((a) {
+      final today = DateTime.now();
+      final todayOnly = DateTime(today.year, today.month, today.day);
+      try {
+        final date = DateTime.parse(a.appointmentDate);
+        final dateOnly = DateTime(date.year, date.month, date.day);
+        return !dateOnly.isBefore(todayOnly) &&
+            !a.isCancelled &&
+            !a.isCompleted;
+      } catch (_) {
+        return false;
+      }
+    }).toList();
+
+    // أول upcoming appointment أو null لو مفيش
+    final firstUpcoming = upcoming.isNotEmpty ? upcoming.first : null;
+
+    context.read<HomeBloc>().add(
+      SetUpcomingAppointmentEvent(appointment: firstUpcoming),
+    );
   }
 
   @override
@@ -39,7 +65,23 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
           ),
         ),
         body: BlocConsumer<MyAppointmentsBloc, MyAppointmentsState>(
+          listenWhen: (prev, curr) {
+            // SnackBar بس لما الـ message يتغير فعلاً
+            final successChanged =
+                curr.successMessage != null &&
+                curr.successMessage != prev.successMessage;
+            final errorChanged =
+                curr.errorMessage != null &&
+                curr.errorMessage != prev.errorMessage;
+            // syncHomeCard بس لما الـ loading يخلص
+            final finishedLoading =
+                prev.isLoading && !curr.isLoading && curr.errorMessage == null;
+            return successChanged || errorChanged || finishedLoading;
+          },
           listener: (context, state) {
+            if (!state.isLoading && state.errorMessage == null) {
+              _syncHomeCard(state.appointments);
+            }
             if (state.successMessage != null) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

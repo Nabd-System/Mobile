@@ -9,6 +9,8 @@ import 'package:nabd/features/appointments/presentation/widgets/appointment_cale
 import 'package:nabd/features/appointments/presentation/widgets/appointment_dropdown.dart';
 import 'package:nabd/features/appointments/presentation/widgets/steps_progress_bar.dart';
 import 'package:nabd/features/appointments/presentation/widgets/time_slots_grid.dart';
+import 'package:nabd/features/appointments/presentation/bloc/my_appointments_bloc.dart';
+import 'package:nabd/features/home/presentation/bloc/home_bloc.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   const BookAppointmentScreen({super.key});
@@ -80,14 +82,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                       CustomButton(
                         text: 'Done',
                         onPressed: () {
-                          // ✅ نقفل الـ dialog الأول
                           Navigator.of(dialogContext).pop();
-                          // ✅ نعمل reset للـ bloc
                           if (context.mounted) {
                             context.read<BookAppointmentBloc>().add(
                               ResetBookingState(),
                             );
                             _notesController.clear();
+                            // ✅ حدّث الـ appointments list تلقائياً
+                            context.read<MyAppointmentsBloc>().add(
+                              LoadMyAppointments(),
+                            );
                           }
                         },
                       ),

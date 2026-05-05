@@ -93,6 +93,20 @@ class ExportLabResultEvent extends MedicalRecordsEvent {
   ExportLabResultEvent({required this.labResultId});
 }
 
+// ==================== Radiology Events ==================== ← جديد
+
+class GetRadiologyEvent extends MedicalRecordsEvent {}
+
+class GetRadiologyDetailsEvent extends MedicalRecordsEvent {
+  final int id;
+  GetRadiologyDetailsEvent({required this.id});
+}
+
+class ExportRadiologyEvent extends MedicalRecordsEvent {
+  final int id;
+  ExportRadiologyEvent({required this.id});
+}
+
 // ==================== Reset Event ====================
 
 class ResetMedicalRecordsEvent extends MedicalRecordsEvent {}

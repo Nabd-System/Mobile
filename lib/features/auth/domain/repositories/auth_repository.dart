@@ -9,4 +9,13 @@ abstract class AuthRepository {
   bool isLoggedIn();
 
   Future<void> logout();
+
+  Future<void> forgotPassword({required String email});
+
+  Future<void> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  });
 }

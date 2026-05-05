@@ -11,7 +11,7 @@ class EmptyRecordsWidget extends StatelessWidget {
     super.key,
     required this.title,
     required this.subtitle,
-    this.icon = Icons.folder_open_outlined,
+    this.icon = Icons.folder_open_outlined, required String message,
   });
 
   @override
