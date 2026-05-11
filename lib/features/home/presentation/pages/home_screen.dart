@@ -5,6 +5,7 @@ import 'package:nabd/core/storage/hive_service.dart';
 import 'package:nabd/core/theme/app_colors.dart';
 import 'package:nabd/core/theme/app_text_styles.dart';
 import 'package:nabd/core/utils/navigation.dart';
+import 'package:nabd/features/appointments/presentation/pages/my_appointments_screen.dart';
 import 'package:nabd/features/auth/data/models/login_response_model.dart';
 import 'package:nabd/features/home/presentation/bloc/home_bloc.dart';
 import 'package:nabd/features/home/presentation/widgets/home_header.dart';
@@ -14,7 +15,7 @@ import 'package:nabd/features/home/presentation/widgets/upcoming_appointment_car
 import 'package:nabd/features/home/presentation/widgets/specializations_section.dart';
 import 'package:nabd/features/home/presentation/widgets/health_tip_banner.dart';
 import 'package:nabd/features/home/presentation/widgets/quick_actions_section.dart';
-import 'package:nabd/features/queue/presentation/pages/queue_status_screen.dart';
+
 import 'package:nabd/features/main_layout/presentation/pages/main_layout_screen.dart';
 import 'package:nabd/features/ai_chat/presentation/pages/ai_chat_screen.dart';
 import 'package:nabd/features/ai_chat/presentation/widgets/floating_ai_button.dart';
@@ -209,9 +210,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Upcoming Appointments',
-                                style: AppTextStyles.heading3(),
+                              Expanded(
+                                child: Text(
+                                  'Upcoming Appointments',
+                                  style: AppTextStyles.heading3(),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               TextButton(
                                 onPressed: () => _navigateToTab(context, 1),
@@ -364,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
       time: appointment.formattedTime,
       imageUrl: '',
       onTap: () {
-        pushTo(context, const QueueStatusScreen());
+        _navigateToTab(context, 1);
       },
     );
   }
