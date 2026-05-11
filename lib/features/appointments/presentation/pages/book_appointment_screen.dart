@@ -152,8 +152,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   label: 'Select Doctor',
                   hint: 'Select Doctor',
                   items: state.doctors,
-                  itemLabel: (doctor) =>
-                      '${doctor.name} (${doctor.specialization})',
+                  itemLabel: (doctor) => '${doctor.name} ',
                   value: state.selectedDoctor,
                   isLoading: state.isDoctorsLoading,
                   isEnabled: state.selectedClinic != null,
