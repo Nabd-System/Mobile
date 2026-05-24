@@ -8,3 +8,8 @@ class SendMessageEvent extends AiChatEvent {
 }
 
 class ClearChatEvent extends AiChatEvent {}
+
+class AnalyzeMedicineEvent extends AiChatEvent {
+  final File imageFile;
+  AnalyzeMedicineEvent({required this.imageFile});
+}

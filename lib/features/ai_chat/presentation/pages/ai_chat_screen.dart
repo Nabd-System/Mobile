@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:nabd/core/constants/app_assets.dart';
 import 'package:nabd/core/theme/app_colors.dart';
 import 'package:nabd/core/theme/app_text_styles.dart';
 import 'package:nabd/features/ai_chat/presentation/bloc/ai_chat_bloc.dart';
 import 'package:nabd/features/ai_chat/presentation/widgets/chat_bubble.dart';
+import 'package:nabd/features/ai_chat/presentation/widgets/medicine_analysis_bubble.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -31,7 +34,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
     context.read<AiChatBloc>().add(SendMessageEvent(message: message));
     _messageController.clear();
 
-    // Scroll to bottom
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -41,6 +43,90 @@ class _AiChatScreenState extends State<AiChatScreen> {
         );
       }
     });
+  }
+
+  Future<void> _showMedicineAnalysisOptions() async {
+    final picker = ImagePicker();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.greyColor.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Analyze Medicine',
+              style: AppTextStyles.bodyMedium(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.photo_library_outlined,
+                  color: AppColors.primaryColor,
+                ),
+              ),
+              title: const Text('Choose from Gallery'),
+              onTap: () async {
+                Navigator.pop(context);
+                final picked = await picker.pickImage(
+                  source: ImageSource.gallery,
+                );
+                if (picked != null && mounted) {
+                  context.read<AiChatBloc>().add(
+                    AnalyzeMedicineEvent(imageFile: File(picked.path)),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.camera_alt_outlined,
+                  color: AppColors.primaryColor,
+                ),
+              ),
+              title: const Text('Take a Photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                final picked = await picker.pickImage(
+                  source: ImageSource.camera,
+                );
+                if (picked != null && mounted) {
+                  context.read<AiChatBloc>().add(
+                    AnalyzeMedicineEvent(imageFile: File(picked.path)),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -53,7 +139,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
         ),
         title: Row(
           children: [
-            // AI Image بدل الـ Icon
             Container(
               width: 36,
               height: 36,
@@ -112,6 +197,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     }
 
                     final msg = state.messages[index];
+
+                    if (msg.isMedicineAnalysis) {
+                      return MedicineAnalysisBubble(rawText: msg.message);
+                    }
+
                     return ChatBubble(message: msg.message, isUser: msg.isUser);
                   },
                 );
@@ -157,6 +247,27 @@ class _AiChatScreenState extends State<AiChatScreen> {
             child: SafeArea(
               child: Row(
                 children: [
+                  // Medicine Analysis Button
+                  GestureDetector(
+                    onTap: _showMedicineAnalysisOptions,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.accentColor,
+                        border: Border.all(color: AppColors.borderColor),
+                      ),
+                      child: Icon(
+                        Icons.medication_outlined,
+                        color: AppColors.primaryColor,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+
+                  // Text Field
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -183,6 +294,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
+
+                  // Send Button
                   BlocBuilder<AiChatBloc, AiChatState>(
                     builder: (context, state) {
                       return GestureDetector(
@@ -222,7 +335,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 60),
-            // AI Image بدل الـ Icon
             Container(
               width: 80,
               height: 80,
@@ -239,7 +351,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Please describe any symptoms you\'re experiencing.',
+              'Describe your symptoms or tap 💊 to analyze a medicine.',
               style: AppTextStyles.bodySmall(color: AppColors.greyColor),
               textAlign: TextAlign.center,
             ),
