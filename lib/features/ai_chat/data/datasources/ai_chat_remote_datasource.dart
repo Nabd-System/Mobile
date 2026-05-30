@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:nabd/core/network/api_client.dart';
 import 'package:nabd/core/network/endpoints.dart';
+import 'package:nabd/features/ai_chat/data/models/skin_analysis_model.dart';
 
 class AiChatRemoteDatasource {
   Future<String> sendMessage(String message) async {
@@ -26,5 +27,21 @@ class AiChatRemoteDatasource {
     );
 
     return response.data['result'] ?? 'Could not analyze the medicine.';
+  }
+
+  Future<SkinAnalysisModel> analyzeSkin(File imageFile) async {
+    final formData = FormData.fromMap({
+      'image': await MultipartFile.fromFile(
+        imageFile.path,
+        filename: imageFile.path.split('/').last,
+      ),
+    });
+
+    final response = await ApiClient.post(
+      endpoint: AppEndpoints.skinAnalysis,
+      data: formData,
+    );
+
+    return SkinAnalysisModel.fromJson(response.data);
   }
 }

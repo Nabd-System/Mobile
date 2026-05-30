@@ -8,6 +8,7 @@ import 'package:nabd/core/theme/app_text_styles.dart';
 import 'package:nabd/features/ai_chat/presentation/bloc/ai_chat_bloc.dart';
 import 'package:nabd/features/ai_chat/presentation/widgets/chat_bubble.dart';
 import 'package:nabd/features/ai_chat/presentation/widgets/medicine_analysis_bubble.dart';
+import 'package:nabd/features/ai_chat/presentation/widgets/skin_analysis_bubble.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -129,6 +130,90 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
+  Future<void> _showSkinAnalysisOptions() async {
+    final picker = ImagePicker();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.greyColor.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Analyze Skin',
+              style: AppTextStyles.bodyMedium(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.photo_library_outlined,
+                  color: AppColors.primaryColor,
+                ),
+              ),
+              title: const Text('Choose from Gallery'),
+              onTap: () async {
+                Navigator.pop(context);
+                final picked = await picker.pickImage(
+                  source: ImageSource.gallery,
+                );
+                if (picked != null && mounted) {
+                  context.read<AiChatBloc>().add(
+                    AnalyzeSkinEvent(imageFile: File(picked.path)),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.camera_alt_outlined,
+                  color: AppColors.primaryColor,
+                ),
+              ),
+              title: const Text('Take a Photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                final picked = await picker.pickImage(
+                  source: ImageSource.camera,
+                );
+                if (picked != null && mounted) {
+                  context.read<AiChatBloc>().add(
+                    AnalyzeSkinEvent(imageFile: File(picked.path)),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,6 +283,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
                     final msg = state.messages[index];
 
+                    if (msg.isSkinAnalysis) {
+                      return SkinAnalysisBubble(data: msg.skinAnalysis!);
+                    }
+
                     if (msg.isMedicineAnalysis) {
                       return MedicineAnalysisBubble(rawText: msg.message);
                     }
@@ -261,6 +350,26 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       ),
                       child: Icon(
                         Icons.medication_outlined,
+                        color: AppColors.primaryColor,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+
+                  // Skin Analysis Button
+                  GestureDetector(
+                    onTap: _showSkinAnalysisOptions,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.accentColor,
+                        border: Border.all(color: AppColors.borderColor),
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_outlined,
                         color: AppColors.primaryColor,
                         size: 22,
                       ),
@@ -351,7 +460,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Describe your symptoms or tap 💊 to analyze a medicine.',
+              'Describe your symptoms, tap 💊 to analyze a medicine, or tap 📷 to analyze skin.',
               style: AppTextStyles.bodySmall(color: AppColors.greyColor),
               textAlign: TextAlign.center,
             ),

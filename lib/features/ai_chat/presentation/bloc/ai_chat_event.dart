@@ -13,3 +13,8 @@ class AnalyzeMedicineEvent extends AiChatEvent {
   final File imageFile;
   AnalyzeMedicineEvent({required this.imageFile});
 }
+
+class AnalyzeSkinEvent extends AiChatEvent {
+  final File imageFile;
+  AnalyzeSkinEvent({required this.imageFile});
+}

@@ -29,6 +29,7 @@ class AppEndpoints {
   // ==================== AI ====================
   static const String aiChat = 'Ai/chat';
   static const String medicineAnalysis = '/Ai/medicine-analysis';
+  static const String skinAnalysis = '/Ai/SkinAnalysis';
 
   // ==================== Medical Records ====================
   static const String visitHistory = 'MedicalRecorde/VisitHistory';

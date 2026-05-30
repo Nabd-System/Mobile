@@ -14,6 +14,7 @@ class AiChatBloc extends Bloc<AiChatEvent, AiChatState> {
     on<SendMessageEvent>(_onSendMessage);
     on<ClearChatEvent>(_onClearChat);
     on<AnalyzeMedicineEvent>(_onAnalyzeMedicine);
+    on<AnalyzeSkinEvent>(_onAnalyzeSkin);
   }
 
   Future<void> _onSendMessage(
@@ -47,7 +48,7 @@ class AiChatBloc extends Bloc<AiChatEvent, AiChatState> {
     AnalyzeMedicineEvent event,
     Emitter<AiChatState> emit,
   ) async {
-    final userMessage = ChatMessageModel.user('📷 Medicine image sent for analysis');
+    final userMessage = ChatMessageModel.user('💊 Medicine image sent for analysis');
     emit(state.copyWith(
       messages: [...state.messages, userMessage],
       isLoading: true,
@@ -66,6 +67,36 @@ class AiChatBloc extends Bloc<AiChatEvent, AiChatState> {
       emit(state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to analyze image. Please try again.',
+      ));
+    }
+  }
+
+  Future<void> _onAnalyzeSkin(
+    AnalyzeSkinEvent event,
+    Emitter<AiChatState> emit,
+  ) async {
+    final userMessage = ChatMessageModel.user('🔬 Skin image sent for analysis');
+    emit(state.copyWith(
+      messages: [...state.messages, userMessage],
+      isLoading: true,
+      clearError: true,
+    ));
+
+    try {
+      final result = await repository.analyzeSkin(event.imageFile);
+      emit(state.copyWith(
+        messages: [
+          ...state.messages,
+          ChatMessageModel.skinAnalysis(result),
+        ],
+        isLoading: false,
+      ));
+    } on ServerException catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: e.message));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to analyze skin image. Please try again.',
       ));
     }
   }
