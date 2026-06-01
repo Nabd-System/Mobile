@@ -8,7 +8,6 @@ import 'package:nabd/features/medical_records/presentation/widgets/chronic_disea
 import 'package:nabd/features/medical_records/presentation/widgets/medical_history_tab.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/radiology_tab.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/visits_tab.dart';
-import 'package:nabd/features/medical_records/presentation/widgets/empty_records_widget.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/prescriptions_tab.dart';
 import 'package:nabd/features/medical_records/presentation/widgets/lab_results_tab.dart';
 

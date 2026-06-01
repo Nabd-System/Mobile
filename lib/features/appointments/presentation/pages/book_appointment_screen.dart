@@ -10,7 +10,7 @@ import 'package:nabd/features/appointments/presentation/widgets/appointment_drop
 import 'package:nabd/features/appointments/presentation/widgets/steps_progress_bar.dart';
 import 'package:nabd/features/appointments/presentation/widgets/time_slots_grid.dart';
 import 'package:nabd/features/appointments/presentation/bloc/my_appointments_bloc.dart';
-import 'package:nabd/features/home/presentation/bloc/home_bloc.dart';
+
 
 class BookAppointmentScreen extends StatefulWidget {
   const BookAppointmentScreen({super.key});

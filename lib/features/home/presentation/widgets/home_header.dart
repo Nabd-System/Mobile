@@ -14,7 +14,7 @@ class HomeHeader extends StatelessWidget {
   final String userType;
   final VoidCallback? onAvatarTap;
 
-  /// أول حرفين من الاسم
+  
   String get _initials {
     if (userName.trim().isEmpty) return 'U';
 
@@ -25,8 +25,7 @@ class HomeHeader extends StatelessWidget {
       return userName.substring(0, userName.length >= 2 ? 2 : 1).toUpperCase();
     }
   }
-
-  /// الاسم الأول فقط
+ 
   String get _firstName {
     if (userName.trim().isEmpty) return 'User';
     return userName.trim().split(' ').first;
@@ -85,16 +84,7 @@ class HomeHeader extends StatelessWidget {
           ),
         ),
 
-        // Notifications
-        IconButton(
-          onPressed: () {
-            // TODO: notifications
-          },
-          icon: const Icon(
-            Icons.notifications_outlined,
-            color: AppColors.darkColor,
-          ),
-        ),
+       
       ],
     );
   }
